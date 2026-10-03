@@ -17,35 +17,56 @@ Usage Examples:
 #### Basic Usage
 Basic usage involves adding `persistReducer` and `persistStore` to your setup. **IMPORTANT** Every app needs to decide how many levels of state they want to "merge". The default is 1 level. Please read through the [state reconciler docs](#state-reconciler) for more information.
 
-```js
-// configureStore.js
+```ts
+// app/store.ts
+import { configureStore, combineReducers } from '@reduxjs/toolkit'
+import {
+  persistStore,
+  persistReducer,
+  FLUSH,
+  REHYDRATE,
+  PAUSE,
+  PERSIST,
+  PURGE,
+  REGISTER,
+} from 'redux-persist'
+import storage from 'redux-persist/lib/storage'
+import userReducer from './features/user/userSlice'
+import configReducer from './features/config/configSlice'
 
-import { createStore } from 'redux'
-import { persistStore, persistReducer } from 'redux-persist'
-import storage from 'redux-persist/lib/storage' // defaults to localStorage for web
-
-import rootReducer from './reducers'
+const rootReducer = combineReducers({
+  user: userReducer,
+  config: configReducer
+})
 
 const persistConfig = {
   key: 'root',
+  version: 1,
   storage,
 }
 
 const persistedReducer = persistReducer(persistConfig, rootReducer)
 
-export default () => {
-  let store = createStore(persistedReducer)
-  let persistor = persistStore(store)
-  return { store, persistor }
-}
+export const store = configureStore({
+  reducer: persistedReducer,
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware({
+      serializableCheck: {
+        ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
+      },
+    }),
+})
+
+export const persistor = persistStore(store)
 ```
 
 If you are using react, wrap your root component with [PersistGate](./docs/PersistGate.md). This delays the rendering of your app's UI until your persisted state has been retrieved and saved to redux. **NOTE** the `PersistGate` loading prop can be null, or any react instance, e.g. `loading={<Loading />}`
 
 ```js
 import { PersistGate } from 'redux-persist/integration/react'
+import { store, persistor } from './app/store'
 
-// ... normal setup, create store and persistor, import components etc.
+// ... normal setup, import components etc.
 
 const App = () => {
   return (
