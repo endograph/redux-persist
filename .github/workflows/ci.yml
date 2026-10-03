@@ -1,7 +1,7 @@
 name: redux-persist ci
 on:
   push:
-    branches: [master]
+    branches: [master, v6]
   pull_request:
 
 jobs:
