@@ -6,7 +6,8 @@ import createMemoryStorage from './utils/createMemoryStorage'
 import { PERSIST } from '../src/constants'
 import sleep from './utils/sleep'
 
-const reducer = () => ({})
+// eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
+const reducer = (state = {}, action: any) => state
 const config = {
   key: 'persist-reducer-test',
   version: 1,
@@ -17,7 +18,8 @@ test('persistedReducer does not automatically set _persist state', t => {
   const persistedReducer = persistReducer(config, reducer)
   const state = persistedReducer({}, {type: "UNDEFINED"})
   console.log('state', state)
-  t.is(undefined, state._persist)
+  // the type includes _persist, but it is only set once PERSIST is handled
+  t.is(state._persist as unknown, undefined)
 })
 
 test('persistedReducer does returns versioned, rehydrate tracked _persist state upon PERSIST', t => {

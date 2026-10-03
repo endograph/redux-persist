@@ -1,7 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import {
-  Action, AnyAction, Reducer
-} from 'redux'
+import { Action } from 'redux'
 
 import {
   FLUSH,
@@ -24,17 +22,21 @@ import createPersistoid from './createPersistoid'
 import defaultGetStoredState from './getStoredState'
 import purgeStoredState from './purgeStoredState'
 
-type PersistPartial = { _persist: PersistState } | any;
+type ReducerWithPreloadedState<S, A extends Action, P = S> = (
+  state: S | P | undefined,
+  action: A
+) => S
+
 const DEFAULT_TIMEOUT = 5000
 /*
   @TODO add validation / handling for:
   - persisting a reducer which has nested _persist
   - handling actions that fire before reydrate is called
 */
-export default function persistReducer<S, A extends Action>(
+export default function persistReducer<S, A extends Action, P = S>(
   config: PersistConfig<S>,
-  baseReducer: Reducer<S, A>
-): Reducer<S & PersistPartial, AnyAction> {
+  baseReducer: ReducerWithPreloadedState<S, A, P>
+): ReducerWithPreloadedState<S & { _persist: PersistState }, A, P & { _persist?: PersistState }> {
   if (process.env.NODE_ENV !== 'production') {
     if (!config) throw new Error('config is required for persistReducer')
     if (!config.key) throw new Error('key is required in persistor config')

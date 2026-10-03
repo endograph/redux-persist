@@ -35,7 +35,7 @@ interface OptionToTestObject {
 
 export default function persistStore(
   store: Store,
-  options?: PersistorOptions,
+  options?: PersistorOptions | null,
   cb?: BoostrappedCb
 ): Persistor {
   // help catch incorrect usage of passing PersistConfig in as PersistorOptions
