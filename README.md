@@ -1,21 +1,9 @@
 # Redux Persist
-
 Persist and rehydrate a redux store.
 
-[![build status](https://img.shields.io/travis/rt2zz/redux-persist/master.svg?style=flat-square)](https://travis-ci.org/rt2zz/redux-persist) [![npm version](https://img.shields.io/npm/v/redux-persist.svg?style=flat-square)](https://www.npmjs.com/package/redux-persist) [![npm downloads](https://img.shields.io/npm/dm/redux-persist.svg?style=flat-square)](https://www.npmjs.com/package/redux-persist)
-[![#redux-persist on Discord](https://img.shields.io/discord/102860784329052160.svg)](https://discord.gg/ExrEvmv)
+[![build status](https://img.shields.io/github/actions/workflow/status/endograph/redux-persist/ci.yml?branch=master&style=flat-square)](https://github.com/endograph/redux-persist/actions/workflows/ci.yml) [![npm version](https://img.shields.io/npm/v/redux-persist.svg?style=flat-square)](https://www.npmjs.com/package/redux-persist) [![npm downloads](https://img.shields.io/npm/dm/redux-persist.svg?style=flat-square)](https://www.npmjs.com/package/redux-persist)
 
-## v6 upgrade
-**Web**: no breaking changes
-**React Native**: Users must now explicitly pass their storage engine in. e.g.
-```js
-import AsyncStorage from '@react-native-community/async-storage';
-
-const persistConfig = {
-  //...
-  storage: AsyncStorage
-}
-```
+Hey all! Sorry for the silence. I am back and redux persist will be maintained again. Starting a triage pass now, there's a lot to cover 🫠 ([#1486](https://github.com/endograph/redux-persist/issues/1486))
 
 ## Quickstart
 `npm install redux-persist`
@@ -29,35 +17,56 @@ Usage Examples:
 #### Basic Usage
 Basic usage involves adding `persistReducer` and `persistStore` to your setup. **IMPORTANT** Every app needs to decide how many levels of state they want to "merge". The default is 1 level. Please read through the [state reconciler docs](#state-reconciler) for more information.
 
-```js
-// configureStore.js
+```ts
+// app/store.ts
+import { configureStore, combineReducers } from '@reduxjs/toolkit'
+import {
+  persistStore,
+  persistReducer,
+  FLUSH,
+  REHYDRATE,
+  PAUSE,
+  PERSIST,
+  PURGE,
+  REGISTER,
+} from 'redux-persist'
+import storage from 'redux-persist/lib/storage'
+import userReducer from './features/user/userSlice'
+import configReducer from './features/config/configSlice'
 
-import { createStore } from 'redux'
-import { persistStore, persistReducer } from 'redux-persist'
-import storage from 'redux-persist/lib/storage' // defaults to localStorage for web
-
-import rootReducer from './reducers'
+const rootReducer = combineReducers({
+  user: userReducer,
+  config: configReducer
+})
 
 const persistConfig = {
   key: 'root',
+  version: 1,
   storage,
 }
 
 const persistedReducer = persistReducer(persistConfig, rootReducer)
 
-export default () => {
-  let store = createStore(persistedReducer)
-  let persistor = persistStore(store)
-  return { store, persistor }
-}
+export const store = configureStore({
+  reducer: persistedReducer,
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware({
+      serializableCheck: {
+        ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
+      },
+    }),
+})
+
+export const persistor = persistStore(store)
 ```
 
 If you are using react, wrap your root component with [PersistGate](./docs/PersistGate.md). This delays the rendering of your app's UI until your persisted state has been retrieved and saved to redux. **NOTE** the `PersistGate` loading prop can be null, or any react instance, e.g. `loading={<Loading />}`
 
 ```js
 import { PersistGate } from 'redux-persist/integration/react'
+import { store, persistor } from './app/store'
 
-// ... normal setup, create store and persistor, import components etc.
+// ... normal setup, import components etc.
 
 const App = () => {
   return (
@@ -86,7 +95,7 @@ const App = () => {
   - arguments
     - **store** *redux store* The store to be persisted.
     - **config** *object* (typically null)
-      - If you want to avoid that the persistence starts immediately after calling `persistStore`, set the option manualPersist. Example: `{ manualPersist: true }` Persistence can then be started at any point with `peristor.persist()`. You usually want to do this if your storage is not ready when the `persistStore` call is made.
+      - If you want to avoid that the persistence starts immediately after calling `persistStore`, set the option manualPersist. Example: `{ manualPersist: true }` Persistence can then be started at any point with `persistor.persist()`. You usually want to do this if your storage is not ready when the `persistStore` call is made.
     - **callback** *function* will be called after rehydration is finished.
   - returns **persistor** object
 
@@ -191,7 +200,7 @@ Redux Persist ships with `createMigrate`, which helps create a synchronous migra
 ## Transforms
 Transforms allow you to customize the state object that gets persisted and rehydrated.
 
-There are several libraries that tackle some of the common implementations for transforms.
+There are several libraries that tackle some common implementations for transforms.
 - [immutable](https://github.com/rt2zz/redux-persist-transform-immutable) - support immutable reducers
 - [seamless-immutable](https://github.com/hilkeheremans/redux-persist-seamless-immutable) - support seamless-immutable reducers
 - [compress](https://github.com/rt2zz/redux-persist-transform-compress) - compress your serialized state with lz-string
@@ -247,32 +256,21 @@ const persistConfig = {
 ## Storage Engines
 - **localStorage** `import storage from 'redux-persist/lib/storage'`
 - **sessionStorage** `import storageSession from 'redux-persist/lib/storage/session'`
-- **AsyncStorage** react-native `import AsyncStorage from '@react-native-community/async-storage'`
-- **[localForage](https://github.com/mozilla/localForage)** recommended for web
 - **[electron storage](https://github.com/psperber/redux-persist-electron-storage)** Electron support via [electron store](https://github.com/sindresorhus/electron-store)
-- **[redux-persist-filesystem-storage](https://github.com/robwalkerco/redux-persist-filesystem-storage)** react-native, to mitigate storage size limitations in android ([#199](https://github.com/rt2zz/redux-persist/issues/199), [#284](https://github.com/rt2zz/redux-persist/issues/284))
-- **[redux-persist-node-storage](https://github.com/pellejacobs/redux-persist-node-storage)** for use in nodejs environments.
-- **[redux-persist-sensitive-storage](https://github.com/CodingZeal/redux-persist-sensitive-storage)** react-native, for sensitive information (uses [react-native-sensitive-info](https://github.com/mCodex/react-native-sensitive-info)).
+- **[redux-persist-cookie-storage](https://github.com/abersager/redux-persist-cookie-storage)** Cookie storage engine, works in browser and Node.js, for universal / isomorphic apps
 - **[redux-persist-expo-filesystem](https://github.com/t73liu/redux-persist-expo-filesystem)** react-native, similar to redux-persist-filesystem-storage but does not require linking or ejecting CRNA/Expo app. Only available if using Expo SDK (Expo, create-react-native-app, standalone).
 - **[redux-persist-expo-securestore](https://github.com/Cretezy/redux-persist-expo-securestore)** react-native, for sensitive information using Expo's SecureStore. Only available if using Expo SDK (Expo, create-react-native-app, standalone).
 - **[redux-persist-fs-storage](https://github.com/leethree/redux-persist-fs-storage)** react-native-fs engine
-- **[redux-persist-cookie-storage](https://github.com/abersager/redux-persist-cookie-storage)** Cookie storage engine, works in browser and Node.js, for universal / isomorphic apps
+- **[redux-persist-filesystem-storage](https://github.com/robwalkerco/redux-persist-filesystem-storage)** react-native, to mitigate storage size limitations in android ([#199](https://github.com/rt2zz/redux-persist/issues/199), [#284](https://github.com/rt2zz/redux-persist/issues/284))
+  **[redux-persist-indexeddb-storage](https://github.com/machester4/redux-persist-indexeddb-storage)** recommended for web via [localForage](https://github.com/localForage/localForage)
+- **[redux-persist-node-storage](https://github.com/pellejacobs/redux-persist-node-storage)** for use in nodejs environments.
+- **[redux-persist-pouchdb](https://github.com/yanick/redux-persist-pouchdb)** Storage engine for PouchDB.
+- **[redux-persist-sensitive-storage](https://github.com/CodingZeal/redux-persist-sensitive-storage)** react-native, for sensitive information (uses [react-native-sensitive-info](https://github.com/mCodex/react-native-sensitive-info)).
 - **[redux-persist-weapp-storage](https://github.com/cuijiemmx/redux-casa/tree/master/packages/redux-persist-weapp-storage)** Storage engine for wechat mini program, also compatible with wepy
 - **[redux-persist-webextension-storage](https://github.com/ssorallen/redux-persist-webextension-storage)** Storage engine for browser (Chrome, Firefox) web extension storage
 - **[@bankify/redux-persist-realm](https://github.com/bankifyio/redux-persist-realm)** Storage engine for Realm database, you will need to install Realm first
-- **[redux-persist-pouchdb](https://github.com/yanick/redux-persist-pouchdb)** Storage engine for PouchDB.
 - **custom** any conforming storage api implementing the following methods: `setItem` `getItem` `removeItem`. (**NB**: These methods must support promises)
 
-## Community
+## Community & Contributing
 
-### Chat Room
-
-[![#redux-persist on Discord](https://img.shields.io/discord/102860784329052160.svg)](https://discord.gg/ExrEvmv) #redux-persist channel in the [Reactiflux](https://www.reactiflux.com/) Discord
-
-### Blog articles from the community
-
-* [The Definitive Guide to Redux Persist: Persist your Redux state in between app launches with Redux Persist](https://blog.reactnativecoach.com/the-definitive-guide-to-redux-persist-84738167975) by Mark Newton
-* [Redux-persist: The Good Parts](https://codeburst.io/redux-persist-the-good-parts-adfab9f91c3b) by Feargal Walsh
-* [Redux: Persist Your State](https://medium.com/async-la/redux-persist-your-state-7ad346c4dd07) by Zack
-* [{Persist}ence is Key: Using Redux-Persist to Store Your State in LocalStorage](https://medium.com/@clrksanford/persist-ence-is-key-using-redux-persist-to-store-your-state-in-localstorage-ac6a000aee63) by Clark Sanford
-* [How to use Redux Persist when migrating your states](https://medium.freecodecamp.org/how-to-use-redux-persist-when-migrating-your-states-a5dee16b5ead) by Lusan Das
+I will be updating this section shortly. If you have a pull request that you've got outstanding, please reach out and I will try to review it and get it integrated. As we've shifted to TypeScript, that may necessitate some changes, but I'm happy to help in that regard, wherever I can.

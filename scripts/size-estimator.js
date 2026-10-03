@@ -1,4 +1,3 @@
-// @noflow
 const { execSync }  = require('child_process')
 const packageJson = require('../package.json')
 
