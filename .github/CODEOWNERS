@@ -1,0 +1,4 @@
+/.github/CODEOWNERS @rt2zz @Andarist
+/.github/workflows/ @rt2zz @Andarist
+/package.json @rt2zz @Andarist
+/package-lock.json @rt2zz @Andarist
