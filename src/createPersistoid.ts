@@ -5,7 +5,12 @@ import createKeyFilter from './keyFilter.js'
 import type { Persistoid, PersistConfig } from './types.js'
 import { KeyAccessState } from './types.js'
 
-export default function createPersistoid(config: PersistConfig<any>): Persistoid {
+export default function createPersistoid(
+  config: PersistConfig<any>,
+  // A write still in flight from a writer this one replaces (replaceReducer).
+  // This writer's writes wait for it, so the older write can't land last.
+  previousWrite?: Promise<any> | null
+): Persistoid {
   // defaults
   // _persist is always written, even when the allowlist doesn't list it
   const passesKeyFilter = createKeyFilter(config, `persist config "${config.key}"`, ['_persist'])
@@ -26,6 +31,11 @@ export default function createPersistoid(config: PersistConfig<any>): Persistoid
   const writeFailHandler = config.writeFailHandler || null
 
   // initialize stateful values
+  let waitFor: Promise<any> | null = previousWrite || null
+  if (waitFor) {
+    const done = () => { waitFor = null }
+    waitFor.then(done, done)
+  }
   let lastState: KeyAccessState = {}
   const stagedState: KeyAccessState = {}
   const keysToProcess: string[] = []
@@ -110,9 +120,10 @@ export default function createPersistoid(config: PersistConfig<any>): Persistoid
       return
     }
 
-    writePromise = storage
-      .setItem(storageKey, serialized)
-      .catch(onWriteFail)
+    const write = () => storage.setItem(storageKey, serialized)
+    // only defer while the previous writer's write is pending, so writes stay
+    // synchronous otherwise (flush() in beforeunload relies on that)
+    writePromise = (waitFor ? waitFor.then(write, write) : write()).catch(onWriteFail)
   }
 
 

@@ -49,6 +49,31 @@ const trackStore = <T extends object>(persist: T, store: PersistedStore): T => {
   return persist
 }
 
+const isObject = (value: unknown): value is Record<string, any> =>
+  value !== null && typeof value === 'object' && !Array.isArray(value)
+
+// When a parent persistReducer also stores a nested persisted reducer's
+// state, rehydrating the parent restores a deserialized copy of the child's
+// _persist. Put the child's live _persist back, so the child is still
+// recognized as the same store (and keeps its own version and status).
+function keepNestedPersist(reconciled: any, current: any): any {
+  if (!isObject(reconciled) || !isObject(current) || reconciled === current) return reconciled
+  let result = reconciled
+  for (const key of Object.keys(current)) {
+    const live = current[key]
+    const next = reconciled[key]
+    if (key === '_persist' || !isObject(live) || !isObject(next) || next === live) continue
+    let fixed = keepNestedPersist(next, live)
+    if (storeFor(live._persist) && fixed._persist !== live._persist)
+      fixed = { ...fixed, _persist: live._persist }
+    if (fixed !== next) {
+      if (result === reconciled) result = { ...reconciled }
+      result[key] = fixed
+    }
+  }
+  return result
+}
+
 /*
   @TODO add validation / handling for:
   - persisting a reducer which has nested _persist
@@ -96,7 +121,12 @@ export default function persistReducer<S, A extends Action = UnknownAction, P = 
   const adoptStore = (store: PersistedStore | undefined) => {
     if (store && store.owner !== owner) {
       store.owner = owner
-      store.persistoid = store.persistoid && createPersistoid(config)
+      if (store.persistoid) {
+        // write what the previous writer had pending now, and cancel its
+        // timer, so it can't overwrite newer state later
+        const pending = store.persistoid.flush()
+        store.persistoid = createPersistoid(config, pending)
+      }
     }
     return store
   }
@@ -224,10 +254,13 @@ export default function persistReducer<S, A extends Action = UnknownAction, P = 
       }
     } else if (action.type === PURGE) {
       const handle = getHandle(action)
-      if (store && handle && handle.result) {
-        store.purged = true
-        // stored data is gone, so there is nothing left to protect
-        store.readFailed = false
+      if (handle && handle.result) {
+        if (store) {
+          store.purged = true
+          // stored data is gone, so there is nothing left to protect
+          store.readFailed = false
+        }
+        // purge storage even if this store hasn't started persisting yet
         handle.result(purgeStoredState(config))
       }
       return {
@@ -258,7 +291,7 @@ export default function persistReducer<S, A extends Action = UnknownAction, P = 
         // only reconcile state if stateReconciler and inboundState are both defined
         const reconciledRest: S =
           stateReconciler !== false && inboundState !== undefined
-            ? stateReconciler(inboundState, state, reducedState, config)
+            ? keepNestedPersist(stateReconciler(inboundState, state, reducedState, config), reducedState)
             : reducedState
 
         const newState = {

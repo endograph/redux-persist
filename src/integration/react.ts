@@ -1,5 +1,10 @@
-import { PureComponent, useEffect, useState } from 'react'
+import * as ReactModule from 'react'
 import type { ReactNode } from 'react'
+
+// Node's native ESM loader can't see the named exports of React's CommonJS
+// build before 16.13, but the module's default export is the whole module.
+const React: typeof ReactModule =
+  (ReactModule as unknown as { default?: typeof ReactModule }).default || ReactModule
 import type { Persistor } from '../types.js'
 
 /**
@@ -7,12 +12,20 @@ import type { Persistor } from '../types.js'
  * re-renders when it does. Needs React 16.8+.
  */
 export function useRehydrated(persistor: Persistor): boolean {
-  const [bootstrapped, setBootstrapped] = useState(() => persistor.getState().bootstrapped)
+  // Read from the current persistor on every render, so switching persistors
+  // never reports the previous one's status; state only triggers re-renders.
+  const bootstrapped = persistor.getState().bootstrapped
+  // remembers which persistor it saw, so after a switch the update below
+  // always differs from the retained state and re-renders
+  const [, setSeen] = React.useState({ persistor, bootstrapped })
 
-  useEffect(() => {
-    const update = () => setBootstrapped(persistor.getState().bootstrapped)
+  React.useEffect(() => {
+    const update = () => {
+      const next = persistor.getState().bootstrapped
+      setSeen(seen => (seen.persistor === persistor && seen.bootstrapped === next ? seen : { persistor, bootstrapped: next }))
+    }
     const unsubscribe = persistor.subscribe(update)
-    // it may have bootstrapped between the first render and subscribing
+    // it may have bootstrapped between rendering and subscribing
     update()
     return unsubscribe
   }, [persistor])
@@ -41,7 +54,7 @@ type State = {
 // PersistGate stays a class component: its generated types are accepted as a
 // JSX component even when an app ends up with two copies of @types/react
 // (#1375), which a function component's return type isn't.
-export class PersistGate extends PureComponent<PersistGateProps, State> {
+export class PersistGate extends React.PureComponent<PersistGateProps, State> {
   static defaultProps = {
     children: null,
     loading: null,
