@@ -8,6 +8,7 @@ import {
   PURGE,
   REHYDRATE,
   DEFAULT_VERSION,
+  DEFAULT_TIMEOUT,
 } from './constants.js'
 
 import type {
@@ -23,7 +24,6 @@ import { getHandle } from './persistorHandle.js'
 import defaultGetStoredState from './getStoredState.js'
 import purgeStoredState from './purgeStoredState.js'
 
-const DEFAULT_TIMEOUT = 5000
 // Persistence state for each store using a persistReducer. A persisted reducer
 // is usually created once and shared by every store built from it (a store per
 // server request or per test), so this state can't live in its closure. It's

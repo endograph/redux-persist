@@ -139,7 +139,7 @@ With the built-in `localStorage` and `sessionStorage` engines, `flush()` writes 
   serialize?: boolean | Function, // false -> store values as is; or a custom serializer (defaults to JSON.stringify)
   deserialize?: boolean | Function, // false -> read values as is; or a custom deserializer (defaults to JSON.parse)
   writeFailHandler?: Function, // will be called if the storage engine fails during setItem()
-  timeout?: number, // ms to wait for stored state before starting without it (defaults to 5000, 0 to wait forever)
+  timeout?: number, // ms to wait for stored state before starting without it, and for a replaced reducer's in-flight write before writing over it (defaults to 5000, 0 to wait forever)
 }
 ```
 
