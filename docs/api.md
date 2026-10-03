@@ -79,6 +79,25 @@ The Persistor is a redux store unto itself, plus
 
 `purge()` method only clear the content of the storage, leaving the internal data of `redux` untouched. To clean it instead, you can use the [redux-reset](https://github.com/wwayne/redux-reset) module.
 
+#### Saving before the app closes
+State changes are written asynchronously (after `throttle` ms, or on the next tick by default), so a change made right before a browser tab closes or a React Native app is backgrounded may not be saved. Call `flush()` from those events to write pending changes immediately:
+
+```js
+// web
+window.addEventListener('beforeunload', () => {
+  persistor.flush()
+})
+
+// React Native
+import { AppState } from 'react-native'
+
+AppState.addEventListener('change', (state) => {
+  if (state === 'background') persistor.flush()
+})
+```
+
+With the built-in `localStorage` and `sessionStorage` engines, `flush()` writes synchronously. Async engines such as AsyncStorage start the write immediately.
+
 ### `type PersistConfig`
 ```js
 {

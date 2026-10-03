@@ -13,7 +13,7 @@ test.beforeEach(() => {
   clock = sinon.useFakeTimers()
 })
 
-test.afterEach(() => {
+test.afterEach.always(() => {
   spy.restore()
   clock.restore()
 })
@@ -54,3 +54,24 @@ test.serial(
     t.true(spy.called)
   }
 )
+
+// With the default throttle of 0, a burst of updates in one tick is still
+// written once, not once per update.
+test.serial('throttle=0 batches a burst of updates into one write', (t) => {
+  const { update } = createPersistoid({ key: 'test', version: 1, storage: memoryStorage, throttle: 0 })
+  for (let i = 0; i < 100; i++) update({ a: i, b: i })
+  t.true(spy.notCalled)
+  clock.tick(0)
+  t.true(spy.calledOnce)
+})
+
+// flush() is what beforeunload and app-background handlers rely on, so it
+// must write pending changes without waiting for the throttle timeout.
+test.serial('flush() writes pending changes without waiting for the throttle', (t) => {
+  const { update, flush } = createPersistoid({ key: 'test', version: 1, storage: memoryStorage, throttle: 1000 })
+  update({ a: 1 })
+  flush()
+  t.true(spy.calledOnce)
+  clock.tick(1000)
+  t.true(spy.calledOnce)
+})
