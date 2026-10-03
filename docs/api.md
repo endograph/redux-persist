@@ -1,5 +1,36 @@
 # Redux Persist API
 ---
+## Quick reference
+
+### `persistReducer(config, reducer)`
+  - arguments
+    - [**config**](#type-persistconfig) *object*
+      - required config: `key, storage`
+      - notable other config: `whitelist, blacklist, version, stateReconciler, debug`
+    - **reducer** *function*
+      - any reducer will work, typically this would be the top level reducer returned by `combineReducers`
+  - returns an enhanced reducer
+
+### `persistStore(store, [config, callback])`
+  - arguments
+    - **store** *redux store* The store to be persisted.
+    - **config** *object* (typically null)
+      - If you want to avoid that the persistence starts immediately after calling `persistStore`, set the option manualPersist. Example: `{ manualPersist: true }` Persistence can then be started at any point with `persistor.persist()`. You usually want to do this if your storage is not ready when the `persistStore` call is made.
+    - **callback** *function* will be called after rehydration is finished.
+  - returns **persistor** object
+
+### `persistor object`
+  - the persistor object is returned by persistStore with the following methods:
+    - `.purge()`
+      - purges state from disk and returns a promise
+    - `.flush()`
+      - immediately writes all pending state to disk and returns a promise
+    - `.pause()`
+      - pauses persistence
+    - `.persist()`
+      - resumes persistence
+
+---
 ## Standard API
 - [persistReducer](#persistreducerconfig-reducer)([config](#type-persistconfig), reducer)
 - [persistStore](#persiststorestore-config-callback)(store)

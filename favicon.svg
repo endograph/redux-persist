@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="33.55 33.55 52.9 52.9">
+  <style>g{fill:#2f3136}@media (prefers-color-scheme:dark){g{fill:#e6e7ea}}</style>
+  <g>
+    <circle cx="39.75" cy="39.75" r="4.2"/>
+    <circle cx="39.75" cy="53.25" r="3.7"/>
+    <circle cx="39.75" cy="66.75" r="3.2"/>
+    <circle cx="39.75" cy="80.25" r="2.7"/>
+    <circle cx="53.25" cy="39.75" r="3.7"/>
+    <circle cx="53.25" cy="53.25" r="3.2"/>
+    <circle cx="53.25" cy="66.75" r="2.7"/>
+    <circle cx="53.25" cy="80.25" r="2.2"/>
+    <circle cx="66.75" cy="39.75" r="3.2"/>
+    <circle cx="66.75" cy="53.25" r="2.7"/>
+    <circle cx="66.75" cy="66.75" r="2.2"/>
+    <circle cx="66.75" cy="80.25" r="1.7"/>
+    <circle cx="80.25" cy="39.75" r="2.7"/>
+    <circle cx="80.25" cy="53.25" r="2.2"/>
+    <circle cx="80.25" cy="66.75" r="1.7"/>
+    <circle cx="80.25" cy="80.25" r="1.2"/>
+  </g>
+</svg>
