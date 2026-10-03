@@ -1,5 +1,9 @@
 # Redux Persist Migration Example
 
+`persistReducer` has a general purpose "migrate" config which will be called after getting stored state but before actually reconciling with the reducer. It can be any function which takes state as an argument and returns a promise to return a new state object.
+
+Redux Persist ships with `createMigrate`, which helps create a synchronous migration for moving from any version of stored state to the current state version.
+
 ### Example with createMigrate
 ```js
 import { createMigrate, persistReducer, persistStore } from 'redux-persist'
