@@ -39,6 +39,13 @@ Leaving it in place is harmless.
   you dispatched them yourself, call `persistor.persist()`,
   `persistor.purge()` or `persistor.flush()` instead. This also means replaying
   actions in Redux DevTools no longer throws or purges storage.
+- **Stored data is never overwritten after a failed read.** If reading stored
+  state fails or a migration throws, writes for that key stay off for the
+  session instead of replacing the stored data with initial state (#809). Call
+  `persistor.purge()` to discard data you know is unreadable. If the read times
+  out, the stored state is applied when it arrives (with a second `REHYDRATE`)
+  instead of being dropped, and writes resume then. See
+  [When stored state can't be read](api.md#when-stored-state-cant-be-read).
 - **`REHYDRATE` errors are plain objects.** When reading storage fails,
   `action.err` is `{ name, message }` instead of an `Error` instance, so it can
   be serialized. Code that reads `action.err.message` keeps working; code that

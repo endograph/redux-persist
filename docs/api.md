@@ -114,11 +114,17 @@ With the built-in `localStorage` and `sessionStorage` engines, `flush()` writes 
   stateReconciler?: false | StateReconciler, // false -> do not automatically reconcile state
   serialize?: boolean, // false -> do not call JSON.parse & stringify when setting & getting from storage
   writeFailHandler?: Function, // will be called if the storage engine fails during setItem()
+  timeout?: number, // ms to wait for stored state before starting without it (defaults to 5000, 0 to wait forever)
 }
 ```
 
 Persisting state involves calling setItem() on the storage engine. By default, this will fail silently if the storage/quota is exhausted.  
 Provide a writeFailHandler(error) function to be notified if this occurs.
+
+#### When stored state can't be read
+If reading stored state fails (a storage error, data that can't be parsed, or a migration that throws), the app still starts: `REHYDRATE` is dispatched with `err` set and no payload. Writes for that key then stay off for the rest of the session, so the stored data isn't replaced with initial state. Call `persistor.purge()` to discard the unreadable data and resume writing, for example after inspecting `err` in a `REHYDRATE` handler.
+
+If reading takes longer than `timeout`, the app starts the same way, with `err` describing the timeout, and writes stay off. When the read finishes, the stored state is applied with a second `REHYDRATE` and writes resume. The stored state replaces any changes made to the same keys in the meantime.
 
 ### `type MigrationManifest`
 ```js
