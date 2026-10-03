@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import createKeyFilter from './keyFilter'
+import type { KeyFilterConfig } from './keyFilter'
 import type { Transform, TransformInbound, TransformOutbound } from './types'
 
-type TransformConfig = {
-  whitelist?: Array<string>,
-  blacklist?: Array<string>,
-}
+// allowlist/denylist pick the top-level keys the transform applies to
+type TransformConfig = KeyFilterConfig
 
 export default function createTransform<HSS, ESS, S = any, RS = any>(
   // @NOTE inbound: transform state coming from redux on its way to being serialized and stored
@@ -13,23 +13,16 @@ export default function createTransform<HSS, ESS, S = any, RS = any>(
   outbound?: TransformOutbound<ESS, HSS, RS> | null,
   config: TransformConfig = {}
 ): Transform<HSS, ESS, S, RS> {
-  const whitelist = config.whitelist || null
-  const blacklist = config.blacklist || null
+  const appliesTo = createKeyFilter(config, 'createTransform config')
 
-  function whitelistBlacklistCheck(key: string) {
-    if (whitelist && whitelist.indexOf(key) === -1) return true
-    if (blacklist && blacklist.indexOf(key) !== -1) return true
-    return false
-  }
-
-  // Keys skipped by whitelist/blacklist pass through unchanged
+  // Keys skipped by allowlist/denylist pass through unchanged
   return {
     in: (state: HSS, key: keyof S, fullState: S): ESS =>
-      !whitelistBlacklistCheck(key as string) && inbound
+      appliesTo(key as string) && inbound
         ? inbound(state, key, fullState)
         : (state as any),
     out: (state: ESS, key: keyof RS, fullState: RS): HSS =>
-      !whitelistBlacklistCheck(key as string) && outbound
+      appliesTo(key as string) && outbound
         ? outbound(state, key, fullState)
         : (state as any),
   }

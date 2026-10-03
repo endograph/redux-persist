@@ -37,8 +37,22 @@ export interface PersistConfig<S, RS = any, HSS = any, ESS = any> {
    * @deprecated keyPrefix is going to be removed in v6.
    */
   keyPrefix?: string;
-  blacklist?: Array<string>;
-  whitelist?: Array<string>;
+  /**
+   * Only persist these top-level state keys.
+   */
+  allowlist?: ReadonlyArray<keyof S & string>;
+  /**
+   * Don't persist these top-level state keys.
+   */
+  denylist?: ReadonlyArray<keyof S & string>;
+  /**
+   * @deprecated Use `allowlist`, which is checked against your state's keys.
+   */
+  whitelist?: ReadonlyArray<string>;
+  /**
+   * @deprecated Use `denylist`, which is checked against your state's keys.
+   */
+  blacklist?: ReadonlyArray<string>;
   transforms?: Array<Transform<HSS, ESS, S, RS>>;
   throttle?: number;
   migrate?: PersistMigrate;
