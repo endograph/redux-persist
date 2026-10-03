@@ -5,7 +5,7 @@
   "main": "lib/index.js",
   "module": "es/index.js",
   "types": "lib/index.d.ts",
-  "repository": "rt2zz/redux-persist",
+  "repository": "endograph/redux-persist",
   "files": [
     "src",
     "es",
@@ -30,7 +30,7 @@
   },
   "author": "",
   "license": "MIT",
-  "homepage": "https://github.com/rt2zz/redux-persist#readme",
+  "homepage": "https://github.com/endograph/redux-persist#readme",
   "ava": {
     "files": [
       "tests/**/*.spec.ts"
