@@ -104,20 +104,44 @@
       "default": "./lib/*.js"
     },
     "./es": {
-      "types": "./es/index.d.ts",
-      "default": "./es/index.js"
+      "import": {
+        "types": "./es/index.d.ts",
+        "default": "./es/index.js"
+      },
+      "require": {
+        "types": "./lib/index.d.ts",
+        "default": "./lib/index.js"
+      }
     },
     "./es/storage": {
-      "types": "./es/storage/index.d.ts",
-      "default": "./es/storage/index.js"
+      "import": {
+        "types": "./es/storage/index.d.ts",
+        "default": "./es/storage/index.js"
+      },
+      "require": {
+        "types": "./lib/storage/index.d.ts",
+        "default": "./lib/storage/index.js"
+      }
     },
     "./es/*.js": {
-      "types": "./es/*.d.ts",
-      "default": "./es/*.js"
+      "import": {
+        "types": "./es/*.d.ts",
+        "default": "./es/*.js"
+      },
+      "require": {
+        "types": "./lib/*.d.ts",
+        "default": "./lib/*.js"
+      }
     },
     "./es/*": {
-      "types": "./es/*.d.ts",
-      "default": "./es/*.js"
+      "import": {
+        "types": "./es/*.d.ts",
+        "default": "./es/*.js"
+      },
+      "require": {
+        "types": "./lib/*.d.ts",
+        "default": "./lib/*.js"
+      }
     },
     "./dist/*": "./dist/*",
     "./package.json": "./package.json"
@@ -166,7 +190,8 @@
     "test": "tsc -p tsconfig.test.json && ava",
     "version": "npm run clean && npm run build && npm run stats:size | tail -1 >> LIBSIZE.md && git add LIBSIZE.md",
     "lint": "eslint src tests",
-    "typecheck": "tsc -p tsconfig.test.json --noEmit"
+    "typecheck": "tsc -p tsconfig.test.json --noEmit",
+    "check:package": "node scripts/check-package/check.mjs"
   },
   "author": "",
   "license": "MIT",
@@ -198,8 +223,10 @@
     "@types/redux-mock-store": "^1.5.0",
     "@types/sinon": "^22.0.0",
     "ava": "^8.0.1",
+    "esbuild": "^0.28.2",
     "eslint": "^10.12.0",
     "prettier": "^3.9.9",
+    "react": "^19.3.0",
     "redux": "^5.0.1",
     "redux-mock-store": "^1.5.5",
     "rimraf": "^6.1.3",
