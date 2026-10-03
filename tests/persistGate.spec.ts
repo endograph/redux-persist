@@ -155,3 +155,20 @@ test.serial('useRehydrated reports the current persistor when it changes', async
   await act(async () => { pending.bootstrap() })
   t.is(text(renderer), '"true"')
 })
+
+test.serial('useRehydrated re-renders when a new persistor bootstraps before the hook subscribes', async t => {
+  const ready = createPersistor(true)
+  const pending = createPersistor(false)
+  const Probe = ({ persistor }: { persistor: Persistor }) => {
+    const reported = useRehydrated(persistor)
+    // layout effects run before the hook's subscription effect
+    useLayoutEffect(() => {
+      if (persistor === pending.persistor && !persistor.getState().bootstrapped) pending.bootstrap()
+    })
+    return String(reported)
+  }
+  const renderer = render(createElement(Probe, { persistor: ready.persistor }))
+  await act(async () => { renderer.update(createElement(Probe, { persistor: pending.persistor })) })
+  t.true(pending.persistor.getState().bootstrapped)
+  t.is(text(renderer), '"true"')
+})

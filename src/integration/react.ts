@@ -15,10 +15,15 @@ export function useRehydrated(persistor: Persistor): boolean {
   // Read from the current persistor on every render, so switching persistors
   // never reports the previous one's status; state only triggers re-renders.
   const bootstrapped = persistor.getState().bootstrapped
-  const [, setSeen] = React.useState(bootstrapped)
+  // remembers which persistor it saw, so after a switch the update below
+  // always differs from the retained state and re-renders
+  const [, setSeen] = React.useState({ persistor, bootstrapped })
 
   React.useEffect(() => {
-    const update = () => setSeen(persistor.getState().bootstrapped)
+    const update = () => {
+      const next = persistor.getState().bootstrapped
+      setSeen(seen => (seen.persistor === persistor && seen.bootstrapped === next ? seen : { persistor, bootstrapped: next }))
+    }
     const unsubscribe = persistor.subscribe(update)
     // it may have bootstrapped between rendering and subscribing
     update()
