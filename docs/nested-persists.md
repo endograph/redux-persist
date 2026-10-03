@@ -27,3 +27,4 @@ const rootReducer = combineReducers({
 export default persistReducer(rootPersistConfig, rootReducer)
 ```
 
+The root config blacklists `auth` because the nested `persistReducer` already saves `auth` under its own key. If the root saved it too, `auth` would be stored twice, and the root copy would include `somethingTemporary`, the field the nested config is meant to exclude.
