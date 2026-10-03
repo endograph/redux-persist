@@ -19,6 +19,7 @@ import type {
 
 import autoMergeLevel1 from './stateReconciler/autoMergeLevel1'
 import createPersistoid from './createPersistoid'
+import { getHandle } from './persistorHandle'
 import defaultGetStoredState from './getStoredState'
 import purgeStoredState from './purgeStoredState'
 
@@ -72,6 +73,17 @@ export default function persistReducer<S, A extends Action, P = S>(
     const restState: S = rest
 
     if (action.type === PERSIST) {
+      const handle = getHandle(action)
+      // A PERSIST without a handle wasn't dispatched by persistStore (for example a
+      // devtools replay), so there is nobody to register with or rehydrate.
+      if (!handle || !handle.register || !handle.rehydrate) {
+        if (process.env.NODE_ENV !== 'production')
+          console.warn(
+            'redux-persist: ignoring a PERSIST action that was not dispatched by persistStore (for example a devtools replay). Use persistor.persist() to start persisting.'
+          )
+        return _persist ? state : baseReducer(state, action)
+      }
+      const { register, rehydrate } = handle
       let _sealed = false
       let timer: ReturnType<typeof setTimeout> | undefined
       const _rehydrate = (payload: any, err?: Error) => {
@@ -87,7 +99,7 @@ export default function persistReducer<S, A extends Action, P = S>(
 
         // only rehydrate if we are not already sealed
         if (!_sealed) {
-          action.rehydrate(config.key, payload, err)
+          rehydrate(config.key, payload, err)
           _sealed = true
           clearTimeout(timer)
         }
@@ -126,15 +138,7 @@ export default function persistReducer<S, A extends Action, P = S>(
         })
       }
 
-      if (
-        typeof action.rehydrate !== 'function' ||
-        typeof action.register !== 'function'
-      )
-        throw new Error(
-          'redux-persist: either rehydrate or register is not a function on the PERSIST action. This can happen if the action is being replayed. This is an unexplored use case, please open an issue and we will figure out a resolution.'
-        )
-
-      action.register(config.key)
+      register(config.key)
 
       getStoredState(config).then(
         restoredState => {
@@ -165,14 +169,18 @@ export default function persistReducer<S, A extends Action, P = S>(
         _persist: { version, rehydrated: false },
       }
     } else if (action.type === PURGE) {
-      _purge = true
-      action.result(purgeStoredState(config))
+      const handle = getHandle(action)
+      if (handle && handle.result) {
+        _purge = true
+        handle.result(purgeStoredState(config))
+      }
       return {
         ...baseReducer(restState, action),
         _persist,
       }
     } else if (action.type === FLUSH) {
-      action.result(_persistoid && _persistoid.flush())
+      const handle = getHandle(action)
+      if (handle && handle.result) handle.result(_persistoid && _persistoid.flush())
       return {
         ...baseReducer(restState, action),
         _persist,

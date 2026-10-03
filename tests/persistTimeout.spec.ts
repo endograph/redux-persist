@@ -4,6 +4,7 @@ import sinon from 'sinon'
 import { applyMiddleware, createStore } from 'redux'
 
 import persistReducer from '../src/persistReducer'
+import { attachHandle } from '../src/persistorHandle'
 import persistStore from '../src/persistStore'
 import { PERSIST, REHYDRATE } from '../src/constants'
 import createMemoryStorage from './utils/createMemoryStorage'
@@ -57,7 +58,7 @@ test.serial('clears the timeout once rehydrated', async t => {
       reducer
     )
     const rehydrate = sinon.spy()
-    persistedReducer(undefined, { type: PERSIST, register: () => {}, rehydrate })
+    persistedReducer(undefined, attachHandle({ type: PERSIST }, { register: () => {}, rehydrate }))
     t.is(clock.countTimers(), 1)
     await new Promise(resolve => setImmediate(resolve))
     t.is(rehydrate.callCount, 1)

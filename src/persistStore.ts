@@ -7,6 +7,7 @@ import type {
 
 import { AnyAction, createStore, Store } from 'redux'
 import { FLUSH, PAUSE, PERSIST, PURGE, REGISTER, REHYDRATE } from './constants'
+import { attachHandle } from './persistorHandle'
 
 type BoostrappedCb = () => any;
 
@@ -28,6 +29,10 @@ const persistorReducer = (state = initialState, action: AnyAction) => {
       return state
   }
 }
+
+// Error instances aren't serializable, so REHYDRATE carries a plain copy
+const serializeError = (err: any) =>
+  err instanceof Error ? { name: err.name, message: err.message } : err
 
 interface OptionToTestObject {
   [key: string]: any;
@@ -74,7 +79,7 @@ export default function persistStore(
     const rehydrateAction = {
       type: REHYDRATE,
       payload,
-      err,
+      err: serializeError(err),
       key,
     }
     // dispatch to `store` to rehydrate and `persistor` to track result
@@ -90,22 +95,16 @@ export default function persistStore(
     ..._pStore,
     purge: () => {
       const results: Array<any> = []
-      store.dispatch({
-        type: PURGE,
-        result: (purgeResult: any) => {
-          results.push(purgeResult)
-        },
-      })
+      store.dispatch(
+        attachHandle({ type: PURGE }, { result: purgeResult => results.push(purgeResult) })
+      )
       return Promise.all(results)
     },
     flush: () => {
       const results: Array<any> = []
-      store.dispatch({
-        type: FLUSH,
-        result: (flushResult: any) => {
-          results.push(flushResult)
-        },
-      })
+      store.dispatch(
+        attachHandle({ type: FLUSH }, { result: flushResult => results.push(flushResult) })
+      )
       return Promise.all(results)
     },
     pause: () => {
@@ -114,7 +113,7 @@ export default function persistStore(
       })
     },
     persist: () => {
-      store.dispatch({ type: PERSIST, register, rehydrate })
+      store.dispatch(attachHandle({ type: PERSIST }, { register, rehydrate }))
     },
   }
 
