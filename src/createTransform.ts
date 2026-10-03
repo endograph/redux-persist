@@ -1,18 +1,18 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import type { Transform, TransformInbound, TransformOutbound } from './types'
+
 type TransformConfig = {
   whitelist?: Array<string>,
   blacklist?: Array<string>,
 }
 
-export default function createTransform(
+export default function createTransform<HSS, ESS, S = any, RS = any>(
   // @NOTE inbound: transform state coming from redux on its way to being serialized and stored
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
-  inbound: Function,
+  inbound?: TransformInbound<HSS, ESS, S> | null,
   // @NOTE outbound: transform state coming from storage, on its way to be rehydrated into redux
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
-  outbound: Function,
+  outbound?: TransformOutbound<ESS, HSS, RS> | null,
   config: TransformConfig = {}
-): any {
+): Transform<HSS, ESS, S, RS> {
   const whitelist = config.whitelist || null
   const blacklist = config.blacklist || null
 
@@ -22,14 +22,15 @@ export default function createTransform(
     return false
   }
 
+  // Keys skipped by whitelist/blacklist pass through unchanged
   return {
-    in: (state: Record<string, unknown>, key: string, fullState: Record<string, unknown>) =>
-      !whitelistBlacklistCheck(key) && inbound
+    in: (state: HSS, key: keyof S, fullState: S): ESS =>
+      !whitelistBlacklistCheck(key as string) && inbound
         ? inbound(state, key, fullState)
-        : state,
-    out: (state: Record<string, unknown>, key: string, fullState: Record<string, unknown>) =>
-      !whitelistBlacklistCheck(key) && outbound
+        : (state as any),
+    out: (state: ESS, key: keyof RS, fullState: RS): HSS =>
+      !whitelistBlacklistCheck(key as string) && outbound
         ? outbound(state, key, fullState)
-        : state,
+        : (state as any),
   }
 }
