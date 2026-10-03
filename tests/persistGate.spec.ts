@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import test from 'ava'
-import { createElement, StrictMode } from 'react'
+import { createElement, StrictMode, useLayoutEffect } from 'react'
 import type { ReactNode } from 'react'
 import { act, create } from 'react-test-renderer'
 import type { ReactTestRenderer } from 'react-test-renderer'
@@ -134,5 +134,24 @@ test.serial('useRehydrated catches a bootstrap that happens before it subscribes
     return String(rehydrated)
   }
   const renderer = render(createElement(Probe))
+  t.is(text(renderer), '"true"')
+})
+
+test.serial('useRehydrated reports the current persistor when it changes', async t => {
+  const ready = createPersistor(true)
+  const pending = createPersistor(false)
+  const committed: Array<{ actual: boolean, reported: boolean }> = []
+  const Probe = ({ persistor }: { persistor: Persistor }) => {
+    const reported = useRehydrated(persistor)
+    useLayoutEffect(() => {
+      committed.push({ actual: persistor.getState().bootstrapped, reported })
+    })
+    return String(reported)
+  }
+  const renderer = render(createElement(Probe, { persistor: ready.persistor }))
+  act(() => { renderer.update(createElement(Probe, { persistor: pending.persistor })) })
+  t.true(committed.every(c => c.actual === c.reported), JSON.stringify(committed))
+  t.is(text(renderer), '"false"')
+  await act(async () => { pending.bootstrap() })
   t.is(text(renderer), '"true"')
 })

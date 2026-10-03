@@ -7,12 +7,15 @@ import type { Persistor } from '../types.js'
  * re-renders when it does. Needs React 16.8+.
  */
 export function useRehydrated(persistor: Persistor): boolean {
-  const [bootstrapped, setBootstrapped] = useState(() => persistor.getState().bootstrapped)
+  // Read from the current persistor on every render, so switching persistors
+  // never reports the previous one's status; state only triggers re-renders.
+  const bootstrapped = persistor.getState().bootstrapped
+  const [, setSeen] = useState(bootstrapped)
 
   useEffect(() => {
-    const update = () => setBootstrapped(persistor.getState().bootstrapped)
+    const update = () => setSeen(persistor.getState().bootstrapped)
     const unsubscribe = persistor.subscribe(update)
-    // it may have bootstrapped between the first render and subscribing
+    // it may have bootstrapped between rendering and subscribing
     update()
     return unsubscribe
   }, [persistor])
