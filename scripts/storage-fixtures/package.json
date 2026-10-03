@@ -1,0 +1,10 @@
+{
+  "name": "redux-persist-storage-fixtures",
+  "private": true,
+  "description": "Generates tests/fixtures/storage-v5-v6.json from published redux-persist versions. Not installed by the root package.",
+  "dependencies": {
+    "redux": "4.2.1",
+    "rp5": "npm:redux-persist@5.10.0",
+    "rp6": "npm:redux-persist@6.0.0"
+  }
+}

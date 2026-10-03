@@ -1,0 +1,457 @@
+{
+  "generatedBy": "scripts/storage-fixtures/generate.js",
+  "fixtures": [
+    {
+      "version": "5.10.0",
+      "name": "basic",
+      "config": {
+        "key": "root"
+      },
+      "state": {
+        "user": {
+          "name": "Ada Lovelace",
+          "token": "secret-token",
+          "tags": [
+            "admin",
+            "beta"
+          ]
+        },
+        "settings": {
+          "theme": "dark",
+          "fontSize": 14,
+          "notifications": {
+            "email": true,
+            "push": false
+          }
+        },
+        "count": 3,
+        "flag": false,
+        "nothing": null,
+        "text": "héllo \"quoted\" \\ back\nslash 🎉 <script>"
+      },
+      "storage": {
+        "persist:root": "{\"_persist\":\"{\\\"version\\\":-1,\\\"rehydrated\\\":true}\",\"user\":\"{\\\"name\\\":\\\"Ada Lovelace\\\",\\\"token\\\":\\\"secret-token\\\",\\\"tags\\\":[\\\"admin\\\",\\\"beta\\\"]}\",\"settings\":\"{\\\"theme\\\":\\\"dark\\\",\\\"fontSize\\\":14,\\\"notifications\\\":{\\\"email\\\":true,\\\"push\\\":false}}\",\"count\":\"3\",\"flag\":\"false\",\"nothing\":\"null\",\"text\":\"\\\"héllo \\\\\\\"quoted\\\\\\\" \\\\\\\\ back\\\\nslash 🎉 <script>\\\"\"}"
+      }
+    },
+    {
+      "version": "5.10.0",
+      "name": "keyPrefix",
+      "config": {
+        "key": "root",
+        "keyPrefix": "myapp:"
+      },
+      "state": {
+        "user": {
+          "name": "Ada Lovelace",
+          "token": "secret-token",
+          "tags": [
+            "admin",
+            "beta"
+          ]
+        },
+        "settings": {
+          "theme": "dark",
+          "fontSize": 14,
+          "notifications": {
+            "email": true,
+            "push": false
+          }
+        },
+        "count": 3,
+        "flag": false,
+        "nothing": null,
+        "text": "héllo \"quoted\" \\ back\nslash 🎉 <script>"
+      },
+      "storage": {
+        "myapp:root": "{\"_persist\":\"{\\\"version\\\":-1,\\\"rehydrated\\\":true}\",\"user\":\"{\\\"name\\\":\\\"Ada Lovelace\\\",\\\"token\\\":\\\"secret-token\\\",\\\"tags\\\":[\\\"admin\\\",\\\"beta\\\"]}\",\"settings\":\"{\\\"theme\\\":\\\"dark\\\",\\\"fontSize\\\":14,\\\"notifications\\\":{\\\"email\\\":true,\\\"push\\\":false}}\",\"count\":\"3\",\"flag\":\"false\",\"nothing\":\"null\",\"text\":\"\\\"héllo \\\\\\\"quoted\\\\\\\" \\\\\\\\ back\\\\nslash 🎉 <script>\\\"\"}"
+      }
+    },
+    {
+      "version": "5.10.0",
+      "name": "whitelist",
+      "config": {
+        "key": "root",
+        "whitelist": [
+          "settings",
+          "count"
+        ]
+      },
+      "state": {
+        "user": {
+          "name": "Ada Lovelace",
+          "token": "secret-token",
+          "tags": [
+            "admin",
+            "beta"
+          ]
+        },
+        "settings": {
+          "theme": "dark",
+          "fontSize": 14,
+          "notifications": {
+            "email": true,
+            "push": false
+          }
+        },
+        "count": 3,
+        "flag": false,
+        "nothing": null,
+        "text": "héllo \"quoted\" \\ back\nslash 🎉 <script>"
+      },
+      "storage": {
+        "persist:root": "{\"_persist\":\"{\\\"version\\\":-1,\\\"rehydrated\\\":true}\",\"settings\":\"{\\\"theme\\\":\\\"dark\\\",\\\"fontSize\\\":14,\\\"notifications\\\":{\\\"email\\\":true,\\\"push\\\":false}}\",\"count\":\"3\"}"
+      }
+    },
+    {
+      "version": "5.10.0",
+      "name": "blacklist",
+      "config": {
+        "key": "root",
+        "blacklist": [
+          "user"
+        ]
+      },
+      "state": {
+        "user": {
+          "name": "Ada Lovelace",
+          "token": "secret-token",
+          "tags": [
+            "admin",
+            "beta"
+          ]
+        },
+        "settings": {
+          "theme": "dark",
+          "fontSize": 14,
+          "notifications": {
+            "email": true,
+            "push": false
+          }
+        },
+        "count": 3,
+        "flag": false,
+        "nothing": null,
+        "text": "héllo \"quoted\" \\ back\nslash 🎉 <script>"
+      },
+      "storage": {
+        "persist:root": "{\"_persist\":\"{\\\"version\\\":-1,\\\"rehydrated\\\":true}\",\"settings\":\"{\\\"theme\\\":\\\"dark\\\",\\\"fontSize\\\":14,\\\"notifications\\\":{\\\"email\\\":true,\\\"push\\\":false}}\",\"count\":\"3\",\"flag\":\"false\",\"nothing\":\"null\",\"text\":\"\\\"héllo \\\\\\\"quoted\\\\\\\" \\\\\\\\ back\\\\nslash 🎉 <script>\\\"\"}"
+      }
+    },
+    {
+      "version": "5.10.0",
+      "name": "versioned",
+      "config": {
+        "key": "root",
+        "version": 1
+      },
+      "state": {
+        "profile": {
+          "firstName": "Ada",
+          "lastName": "Lovelace"
+        }
+      },
+      "storage": {
+        "persist:root": "{\"_persist\":\"{\\\"version\\\":1,\\\"rehydrated\\\":true}\",\"profile\":\"{\\\"firstName\\\":\\\"Ada\\\",\\\"lastName\\\":\\\"Lovelace\\\"}\"}"
+      }
+    },
+    {
+      "version": "5.10.0",
+      "name": "emptyObjects",
+      "config": {
+        "key": "root"
+      },
+      "state": {
+        "a": {},
+        "b": [],
+        "c": ""
+      },
+      "storage": {
+        "persist:root": "{\"_persist\":\"{\\\"version\\\":-1,\\\"rehydrated\\\":true}\",\"a\":\"{}\",\"b\":\"[]\",\"c\":\"\\\"\\\"\"}"
+      }
+    },
+    {
+      "version": "5.10.0",
+      "name": "serializeFalse",
+      "config": {
+        "key": "root",
+        "serialize": false,
+        "deserialize": false
+      },
+      "state": {
+        "user": {
+          "name": "Ada"
+        },
+        "count": 1
+      },
+      "storage": {
+        "persist:root": {
+          "_persist": {
+            "version": -1,
+            "rehydrated": true
+          },
+          "user": {
+            "name": "Ada"
+          },
+          "count": 1
+        }
+      }
+    },
+    {
+      "version": "5.10.0",
+      "name": "nested",
+      "config": {
+        "root": {
+          "key": "root",
+          "blacklist": [
+            "user"
+          ]
+        },
+        "user": {
+          "key": "user",
+          "blacklist": [
+            "token"
+          ]
+        }
+      },
+      "state": {
+        "user": {
+          "name": "Ada",
+          "token": "secret-token"
+        },
+        "settings": {
+          "theme": "dark"
+        }
+      },
+      "storage": {
+        "persist:root": "{\"settings\":\"{\\\"theme\\\":\\\"dark\\\"}\",\"_persist\":\"{\\\"version\\\":-1,\\\"rehydrated\\\":true}\"}",
+        "persist:user": "{\"_persist\":\"{\\\"version\\\":-1,\\\"rehydrated\\\":true}\",\"name\":\"\\\"Ada\\\"\"}"
+      }
+    },
+    {
+      "version": "6.0.0",
+      "name": "basic",
+      "config": {
+        "key": "root"
+      },
+      "state": {
+        "user": {
+          "name": "Ada Lovelace",
+          "token": "secret-token",
+          "tags": [
+            "admin",
+            "beta"
+          ]
+        },
+        "settings": {
+          "theme": "dark",
+          "fontSize": 14,
+          "notifications": {
+            "email": true,
+            "push": false
+          }
+        },
+        "count": 3,
+        "flag": false,
+        "nothing": null,
+        "text": "héllo \"quoted\" \\ back\nslash 🎉 <script>"
+      },
+      "storage": {
+        "persist:root": "{\"_persist\":\"{\\\"version\\\":-1,\\\"rehydrated\\\":true}\",\"user\":\"{\\\"name\\\":\\\"Ada Lovelace\\\",\\\"token\\\":\\\"secret-token\\\",\\\"tags\\\":[\\\"admin\\\",\\\"beta\\\"]}\",\"settings\":\"{\\\"theme\\\":\\\"dark\\\",\\\"fontSize\\\":14,\\\"notifications\\\":{\\\"email\\\":true,\\\"push\\\":false}}\",\"count\":\"3\",\"flag\":\"false\",\"nothing\":\"null\",\"text\":\"\\\"héllo \\\\\\\"quoted\\\\\\\" \\\\\\\\ back\\\\nslash 🎉 <script>\\\"\"}"
+      }
+    },
+    {
+      "version": "6.0.0",
+      "name": "keyPrefix",
+      "config": {
+        "key": "root",
+        "keyPrefix": "myapp:"
+      },
+      "state": {
+        "user": {
+          "name": "Ada Lovelace",
+          "token": "secret-token",
+          "tags": [
+            "admin",
+            "beta"
+          ]
+        },
+        "settings": {
+          "theme": "dark",
+          "fontSize": 14,
+          "notifications": {
+            "email": true,
+            "push": false
+          }
+        },
+        "count": 3,
+        "flag": false,
+        "nothing": null,
+        "text": "héllo \"quoted\" \\ back\nslash 🎉 <script>"
+      },
+      "storage": {
+        "myapp:root": "{\"_persist\":\"{\\\"version\\\":-1,\\\"rehydrated\\\":true}\",\"user\":\"{\\\"name\\\":\\\"Ada Lovelace\\\",\\\"token\\\":\\\"secret-token\\\",\\\"tags\\\":[\\\"admin\\\",\\\"beta\\\"]}\",\"settings\":\"{\\\"theme\\\":\\\"dark\\\",\\\"fontSize\\\":14,\\\"notifications\\\":{\\\"email\\\":true,\\\"push\\\":false}}\",\"count\":\"3\",\"flag\":\"false\",\"nothing\":\"null\",\"text\":\"\\\"héllo \\\\\\\"quoted\\\\\\\" \\\\\\\\ back\\\\nslash 🎉 <script>\\\"\"}"
+      }
+    },
+    {
+      "version": "6.0.0",
+      "name": "whitelist",
+      "config": {
+        "key": "root",
+        "whitelist": [
+          "settings",
+          "count"
+        ]
+      },
+      "state": {
+        "user": {
+          "name": "Ada Lovelace",
+          "token": "secret-token",
+          "tags": [
+            "admin",
+            "beta"
+          ]
+        },
+        "settings": {
+          "theme": "dark",
+          "fontSize": 14,
+          "notifications": {
+            "email": true,
+            "push": false
+          }
+        },
+        "count": 3,
+        "flag": false,
+        "nothing": null,
+        "text": "héllo \"quoted\" \\ back\nslash 🎉 <script>"
+      },
+      "storage": {
+        "persist:root": "{\"_persist\":\"{\\\"version\\\":-1,\\\"rehydrated\\\":true}\",\"settings\":\"{\\\"theme\\\":\\\"dark\\\",\\\"fontSize\\\":14,\\\"notifications\\\":{\\\"email\\\":true,\\\"push\\\":false}}\",\"count\":\"3\"}"
+      }
+    },
+    {
+      "version": "6.0.0",
+      "name": "blacklist",
+      "config": {
+        "key": "root",
+        "blacklist": [
+          "user"
+        ]
+      },
+      "state": {
+        "user": {
+          "name": "Ada Lovelace",
+          "token": "secret-token",
+          "tags": [
+            "admin",
+            "beta"
+          ]
+        },
+        "settings": {
+          "theme": "dark",
+          "fontSize": 14,
+          "notifications": {
+            "email": true,
+            "push": false
+          }
+        },
+        "count": 3,
+        "flag": false,
+        "nothing": null,
+        "text": "héllo \"quoted\" \\ back\nslash 🎉 <script>"
+      },
+      "storage": {
+        "persist:root": "{\"_persist\":\"{\\\"version\\\":-1,\\\"rehydrated\\\":true}\",\"settings\":\"{\\\"theme\\\":\\\"dark\\\",\\\"fontSize\\\":14,\\\"notifications\\\":{\\\"email\\\":true,\\\"push\\\":false}}\",\"count\":\"3\",\"flag\":\"false\",\"nothing\":\"null\",\"text\":\"\\\"héllo \\\\\\\"quoted\\\\\\\" \\\\\\\\ back\\\\nslash 🎉 <script>\\\"\"}"
+      }
+    },
+    {
+      "version": "6.0.0",
+      "name": "versioned",
+      "config": {
+        "key": "root",
+        "version": 1
+      },
+      "state": {
+        "profile": {
+          "firstName": "Ada",
+          "lastName": "Lovelace"
+        }
+      },
+      "storage": {
+        "persist:root": "{\"_persist\":\"{\\\"version\\\":1,\\\"rehydrated\\\":true}\",\"profile\":\"{\\\"firstName\\\":\\\"Ada\\\",\\\"lastName\\\":\\\"Lovelace\\\"}\"}"
+      }
+    },
+    {
+      "version": "6.0.0",
+      "name": "emptyObjects",
+      "config": {
+        "key": "root"
+      },
+      "state": {
+        "a": {},
+        "b": [],
+        "c": ""
+      },
+      "storage": {
+        "persist:root": "{\"_persist\":\"{\\\"version\\\":-1,\\\"rehydrated\\\":true}\",\"a\":\"{}\",\"b\":\"[]\",\"c\":\"\\\"\\\"\"}"
+      }
+    },
+    {
+      "version": "6.0.0",
+      "name": "serializeFalse",
+      "config": {
+        "key": "root",
+        "serialize": false,
+        "deserialize": false
+      },
+      "state": {
+        "user": {
+          "name": "Ada"
+        },
+        "count": 1
+      },
+      "storage": {
+        "persist:root": {
+          "_persist": {
+            "version": -1,
+            "rehydrated": true
+          },
+          "user": {
+            "name": "Ada"
+          },
+          "count": 1
+        }
+      }
+    },
+    {
+      "version": "6.0.0",
+      "name": "nested",
+      "config": {
+        "root": {
+          "key": "root",
+          "blacklist": [
+            "user"
+          ]
+        },
+        "user": {
+          "key": "user",
+          "blacklist": [
+            "token"
+          ]
+        }
+      },
+      "state": {
+        "user": {
+          "name": "Ada",
+          "token": "secret-token"
+        },
+        "settings": {
+          "theme": "dark"
+        }
+      },
+      "storage": {
+        "persist:root": "{\"settings\":\"{\\\"theme\\\":\\\"dark\\\"}\",\"_persist\":\"{\\\"version\\\":-1,\\\"rehydrated\\\":true}\"}",
+        "persist:user": "{\"_persist\":\"{\\\"version\\\":-1,\\\"rehydrated\\\":true}\",\"name\":\"\\\"Ada\\\"\"}"
+      }
+    }
+  ]
+}
