@@ -83,7 +83,9 @@ export interface WebStorage extends Storage {
 }
 
 export interface MigrationManifest {
-  [key: string]: (state: PersistedState) => PersistedState;
+  [key: string]:
+    | ((state: PersistedState) => PersistedState)
+    | ((state: PersistedState) => Promise<PersistedState>)
 }
 
 /**

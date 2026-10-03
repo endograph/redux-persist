@@ -13,7 +13,8 @@ const migrations = {
       device: undefined   
     }
   },
-  1: (state) => {
+  // Async functions are allowed
+  1: async (state) => {
     // migration to keep only device state
     return {
       device: state.device
