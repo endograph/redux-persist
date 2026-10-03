@@ -6,10 +6,10 @@ type TransformConfig = {
 
 export default function createTransform(
   // @NOTE inbound: transform state coming from redux on its way to being serialized and stored
-  // eslint-disable-next-line @typescript-eslint/ban-types
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
   inbound: Function,
   // @NOTE outbound: transform state coming from storage, on its way to be rehydrated into redux
-  // eslint-disable-next-line @typescript-eslint/ban-types
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
   outbound: Function,
   config: TransformConfig = {}
 ): any {
