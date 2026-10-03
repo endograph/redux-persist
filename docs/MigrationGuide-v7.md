@@ -124,6 +124,14 @@ logged in development.
 
 ## Breaking changes
 
+- **No UMD build.** `dist/redux-persist.js` and `dist/redux-persist.min.js`
+  are gone, as in Redux 5 and Redux Toolkit 2. Use a bundler, or load the ES
+  modules from a CDN that serves them (for example
+  `https://esm.sh/redux-persist@7` or
+  `https://cdn.jsdelivr.net/npm/redux-persist@7/+esm`). Script tags that load
+  the v6 UMD file keep working if they pin the version
+  (`redux-persist@6/dist/redux-persist.min.js`); unpinned URLs will break once
+  v7 is the latest version.
 - **Use the persistor to persist, purge and flush.** `PERSIST`, `PURGE` and
   `FLUSH` actions that weren't dispatched by the persistor are now ignored. If
   you dispatched them yourself, call `persistor.persist()`,
