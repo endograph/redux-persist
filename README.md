@@ -23,8 +23,15 @@ changes and restored into the store when your app starts.
 > maintained again. Starting a triage pass now, there's a lot to cover 🫠
 > ([#1486](https://github.com/endograph/redux-persist/issues/1486))
 
+> **These docs are for redux-persist 7**, which is in beta
+> (`npm install redux-persist@next`). It needs Redux 5 or Redux Toolkit 2.
+> Upgrading from 6? Read the [migration guide](docs/MigrationGuide-v7.md); your
+> stored data carries over as is. For 6.x, see the
+> [v6 docs](https://github.com/endograph/redux-persist/tree/v6#readme).
+
 - **Drop-in.** Wrap your root reducer with `persistReducer` and call
-  `persistStore`. Nothing else in your app changes.
+  `persistStore`. Nothing else in your app changes, and Redux Toolkit needs no
+  extra setup.
 - **Any storage.** localStorage and sessionStorage ship in the box;
   AsyncStorage, IndexedDB, the filesystem and more plug in —
   [storage engines](docs/storage-engines.md).
@@ -44,17 +51,8 @@ Wrap your root reducer and create a persistor alongside the store:
 ```ts
 // app/store.ts
 import { configureStore, combineReducers } from '@reduxjs/toolkit'
-import {
-  persistStore,
-  persistReducer,
-  FLUSH,
-  REHYDRATE,
-  PAUSE,
-  PERSIST,
-  PURGE,
-  REGISTER,
-} from 'redux-persist'
-import storage from 'redux-persist/lib/storage'
+import { persistStore, persistReducer } from 'redux-persist'
+import storage from 'redux-persist/storage' // localStorage on the web
 import userReducer from './features/user/userSlice'
 import configReducer from './features/config/configSlice'
 
@@ -73,12 +71,6 @@ const persistedReducer = persistReducer(persistConfig, rootReducer)
 
 export const store = configureStore({
   reducer: persistedReducer,
-  middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware({
-      serializableCheck: {
-        ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
-      },
-    }),
 })
 
 export const persistor = persistStore(store)
@@ -90,7 +82,7 @@ state has been loaded back into redux. `loading` can be `null` or any React
 element, e.g. `loading={<Loading />}`.
 
 ```js
-import { PersistGate } from 'redux-persist/integration/react'
+import { PersistGate } from 'redux-persist/react'
 import { store, persistor } from './app/store'
 
 // ... normal setup, import components etc.
@@ -105,6 +97,9 @@ const App = () => {
   );
 };
 ```
+
+If you'd rather not gate rendering, `useRehydrated(persistor)` from
+`redux-persist/react` returns whether stored state has loaded.
 
 Every app has to decide how many levels of stored state to merge into its
 initial state. The default is one level; read
@@ -123,23 +118,25 @@ const persistConfig = {
 }
 ```
 
+### Server rendering
+
+`redux-persist/storage` works during server rendering (Next.js and others): on
+the server it stores nothing, and stored state is loaded in the browser.
+
 ### Choosing what's saved
 
-`blacklist` and `whitelist` pick top-level keys:
+`denylist` and `allowlist` pick top-level keys:
 
-```js
-const persistConfig = {
-  key: 'root',
-  storage,
-  blacklist: ['navigation'], // navigation will not be persisted
-}
+```ts
+persistReducer({ key: 'root', storage, denylist: ['navigation'] }, rootReducer) // navigation will not be persisted
 
-const persistConfig = {
-  key: 'root',
-  storage,
-  whitelist: ['navigation'], // only navigation will be persisted
-}
+persistReducer({ key: 'root', storage, allowlist: ['navigation'] }, rootReducer) // only navigation will be persisted
 ```
+
+They're checked against your state's keys, so a typo is a type error. If you
+declare the config separately, annotate it with `PersistConfig<RootState>` or
+use `as const` on the array. The older names `blacklist` and `whitelist` still
+work.
 
 To go deeper than one level, use [nested persists](docs/nested-persists.md).
 
@@ -153,6 +150,8 @@ To go deeper than one level, use [nested persists](docs/nested-persists.md).
 - [Transforms](docs/transforms.md) — customizing what's serialized, and community transforms
 - [Storage engines](docs/storage-engines.md) — built-in and community storage backends
 - [Hot module replacement](docs/hot-module-replacement.md)
+- [Migrating from v6 to v7](docs/MigrationGuide-v7.md)
+- [Storage format](docs/storage-format.md) — what's stored, and the compatibility promise
 - [Migrating from v4 to v5](docs/MigrationGuide-v5.md)
 
 ## Contributing

@@ -7,7 +7,7 @@ Redux Persist ships with `createMigrate`, which helps create a synchronous migra
 ### Example with createMigrate
 ```js
 import { createMigrate, persistReducer, persistStore } from 'redux-persist'
-import storage from 'redux-persist/es/storage'
+import storage from 'redux-persist/storage'
 
 const migrations = {
   0: (state) => {
