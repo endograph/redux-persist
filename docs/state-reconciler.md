@@ -1,5 +1,5 @@
 # State Reconciler
-State reconcilers define how incoming state is merged in with initial state. It is critical to choose the right state reconciler for your state. There are three options that ship out of the box, let's look at how each operates:
+State reconcilers define how incoming state, loaded from storage, is merged in with initial state, which comes from your reducers. It is critical to choose the right state reconciler for your state. There are three options that ship out of the box, let's look at how each operates:
 
 1. **hardSet** (`import hardSet from 'redux-persist/stateReconciler/hardSet'`)
 This will hard set incoming state. This can be desirable in some cases where persistReducer is nested deeper in your reducer tree, or if you do not rely on initialState in your reducer.
