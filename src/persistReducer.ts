@@ -71,6 +71,7 @@ export default function persistReducer<S, A extends Action>(
 
     if (action.type === PERSIST) {
       let _sealed = false
+      let timer: ReturnType<typeof setTimeout> | undefined
       const _rehydrate = (payload: any, err?: Error) => {
         // dev warning if we are already sealed
         if (process.env.NODE_ENV !== 'production' && _sealed)
@@ -86,10 +87,11 @@ export default function persistReducer<S, A extends Action>(
         if (!_sealed) {
           action.rehydrate(config.key, payload, err)
           _sealed = true
+          clearTimeout(timer)
         }
       }
-      timeout &&
-        setTimeout(() => {
+      if (timeout) {
+        timer = setTimeout(() => {
           !_sealed &&
             _rehydrate(
               undefined,
@@ -100,6 +102,7 @@ export default function persistReducer<S, A extends Action>(
               )
             )
         }, timeout)
+      }
 
       // @NOTE PERSIST resumes if paused.
       _paused = false
@@ -109,12 +112,16 @@ export default function persistReducer<S, A extends Action>(
 
       // @NOTE PERSIST can be called multiple times, noop after the first
       if (_persist) {
+        // This PERSIST will not rehydrate, so cancel its timeout
+        _sealed = true
+        clearTimeout(timer)
         // We still need to call the base reducer because there might be nested
-        // uses of persistReducer which need to be aware of the PERSIST action
-        return {
+        // uses of persistReducer which need to be aware of the PERSIST action.
+        // conditionalUpdate saves any changes made while paused.
+        return conditionalUpdate({
           ...baseReducer(restState, action),
           _persist,
-        };
+        })
       }
 
       if (
@@ -142,6 +149,8 @@ export default function persistReducer<S, A extends Action>(
                 _rehydrate(undefined, migrateErr)
               }
             )
+          } else {
+            _rehydrate(undefined)
           }
         },
         err => {
