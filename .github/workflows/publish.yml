@@ -29,7 +29,13 @@ jobs:
           npm run lint
           npm run build
           npm test
+          npm run check:package
       - name: Use npm with trusted publishing support
         run: npm install -g npm@11.21.0
+      - name: Choose npm dist-tag
+        id: dist-tag
+        # prereleases (7.0.0-beta.0) go to "next" so they never become the default install
+        run: |
+          node -e 'const v = require("./package.json").version; console.log("tag=" + (v.includes("-") ? "next" : "latest"))' >> "$GITHUB_OUTPUT"
       - name: Publish
-        run: npm publish --provenance --access public --ignore-scripts
+        run: npm publish --provenance --access public --ignore-scripts --tag "${{ steps.dist-tag.outputs.tag }}"
