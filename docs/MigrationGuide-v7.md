@@ -102,6 +102,26 @@ const persistConfig = { key: 'root', storage, allowlist: ['user'] as const }
 If both an old and a new name are set, the new one is used and a warning is
 logged in development.
 
+## React
+
+- **`useRehydrated(persistor)`** is a new hook (React 16.8+) that returns
+  whether stored state has loaded, for when you'd rather not use a gate:
+
+  ```tsx
+  import { useRehydrated } from 'redux-persist/react'
+
+  const ready = useRehydrated(persistor)
+  ```
+- **`PersistGate` no longer flashes `loading`** when stored state has already
+  loaded before it first renders (#1070).
+- **`onBeforeLift`** runs once even in StrictMode, and if it throws or rejects
+  the gate still lifts and the error is logged in development, instead of
+  becoming an unhandled promise rejection.
+- **"'PersistGate' cannot be used as a JSX component"** (#1375): v7's types
+  are accepted even when a project ends up with two copies of `@types/react`,
+  so the `resolutions`/`overrides` workaround is no longer needed for
+  redux-persist.
+
 ## Breaking changes
 
 - **Use the persistor to persist, purge and flush.** `PERSIST`, `PURGE` and
