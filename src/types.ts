@@ -82,10 +82,13 @@ export interface WebStorage extends Storage {
   removeItem(key: string): Promise<void>;
 }
 
-export interface MigrationManifest {
-  [key: string]:
-    | ((state: PersistedState) => PersistedState)
-    | ((state: PersistedState) => Promise<PersistedState>)
+/**
+ * Each migration receives the stored state from the previous version and returns
+ * the state for its version, or a promise of it. Shapes usually differ between
+ * versions, so state is untyped by default; pass `S` to type every step.
+ */
+export interface MigrationManifest<S = any> {
+  [key: string]: (state: S) => S | Promise<S>
 }
 
 /**
