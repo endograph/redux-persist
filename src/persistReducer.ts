@@ -112,12 +112,16 @@ export default function persistReducer<S, A extends Action>(
 
       // @NOTE PERSIST can be called multiple times, noop after the first
       if (_persist) {
+        // This PERSIST will not rehydrate, so cancel its timeout
+        _sealed = true
+        clearTimeout(timer)
         // We still need to call the base reducer because there might be nested
-        // uses of persistReducer which need to be aware of the PERSIST action
-        return {
+        // uses of persistReducer which need to be aware of the PERSIST action.
+        // conditionalUpdate saves any changes made while paused.
+        return conditionalUpdate({
           ...baseReducer(restState, action),
           _persist,
-        };
+        })
       }
 
       if (
