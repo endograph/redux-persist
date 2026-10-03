@@ -115,6 +115,13 @@ function getStoredStateV4(v4Config: V4Config) {
     if (storage.keys && !storage.getAllKeys)
       storage = { ...storage, getAllKeys: storage.keys }
 
+    if (!storage.getAllKeys)
+      return reject(
+        new Error(
+          'redux-persist/getStoredState: the v4 storage must implement getAllKeys (or keys)'
+        )
+      )
+
     const restoredState: KeyAccessState = {}
     let completionCount = 0
 

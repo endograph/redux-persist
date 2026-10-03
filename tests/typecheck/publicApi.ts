@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // Compile-time checks for the public types. `npm test` type-checks this file
 // (it is not run by ava); a regression shows up as a compile error.
-import { combineReducers, createStore } from 'redux'
+import { configureStore } from '@reduxjs/toolkit'
+import { combineReducers, legacy_createStore as createStore } from 'redux'
 
 import {
   createMigrate,
@@ -92,4 +93,22 @@ persistReducer(legacyConfig, rootReducer)
 const legacyKeys: string[] = ['user']
 persistReducer({ key: 'legacy-keys', storage, blacklist: legacyKeys }, rootReducer)
 
-export { name, badKey, persistor, theme, badCombinedKey, config, transform, rehydrate }
+// RTK: preloadedState doesn't need _persist (#1169, #1459), and state stays typed
+const rtkStore = configureStore({
+  reducer: persistReducer({ key: 'rtk', storage }, rootReducer),
+  preloadedState: { settings: { theme: 'light' } },
+})
+const rtkName: string = rtkStore.getState().user.name
+// @ts-expect-error unknown keys are rejected
+const rtkBadKey = rtkStore.getState().notAKey
+
+// RTK + persistCombineReducers: partial preloadedState and narrow action types
+type CounterAction = { type: 'inc' } | { type: 'dec' }
+const counter = (state = 0, action: CounterAction) => (action.type === 'inc' ? state + 1 : state)
+const combinedStore = configureStore({
+  reducer: persistCombineReducers({ key: 'combined-rtk', storage }, { counter, settings }),
+  preloadedState: { settings: { theme: 'light' } },
+})
+const count: number = combinedStore.getState().counter
+
+export { name, badKey, persistor, theme, badCombinedKey, config, transform, rehydrate, rtkName, rtkBadKey, count }

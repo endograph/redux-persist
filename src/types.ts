@@ -12,6 +12,13 @@ export type PersistedState = {
   _persist: PersistState;
 } | undefined;
 
+/**
+ * What persistReducer adds to the state of the reducer it wraps.
+ */
+export interface PersistPartial {
+  _persist: PersistState;
+}
+
 export type PersistMigrate =
   (state: PersistedState, currentVersion: number) => Promise<PersistedState>;
 
@@ -78,7 +85,10 @@ export interface Storage {
   setItem(key: string, value: any, ...args: Array<any>): any;
   removeItem(key: string, ...args: Array<any>): any;
   keys?: Array<string>;
-  getAllKeys(cb?: any): any;
+  /**
+   * Only used by `getStoredState` from `redux-persist/integration/getStoredStateMigrateV4`.
+   */
+  getAllKeys?(cb?: any): any;
 }
 
 export interface WebStorage extends Storage {

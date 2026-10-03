@@ -1,23 +1,37 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { combineReducers, ReducersMapObject } from 'redux'
+import { combineReducers } from 'redux'
+import type {
+  ActionFromReducersMapObject,
+  PreloadedStateShapeFromReducersMapObject,
+  Reducer,
+  StateFromReducersMapObject,
+} from 'redux'
 import persistReducer from './persistReducer'
 import autoMergeLevel2 from './stateReconciler/autoMergeLevel2'
 
 import type {
   PersistConfig,
-  PersistState,
+  PersistPartial,
 } from './types'
 
 // combineReducers + persistReducer with stateReconciler defaulted to autoMergeLevel2
-export default function persistCombineReducers<S>(
-  config: PersistConfig<S>,
-  reducers: ReducersMapObject<S, any>
-): (state: (S & { _persist?: PersistState }) | undefined, action: any) => S & { _persist: PersistState } {
+export default function persistCombineReducers<M>(
+  config: PersistConfig<StateFromReducersMapObject<M>>,
+  reducers: M
+): Reducer<
+  StateFromReducersMapObject<M> & PersistPartial,
+  ActionFromReducersMapObject<M>,
+  Partial<PreloadedStateShapeFromReducersMapObject<M>> & Partial<PersistPartial>
+> {
   config.stateReconciler =
     config.stateReconciler === undefined
       ? autoMergeLevel2
       : config.stateReconciler
-  // Redux 4 brands combined state as CombinedState<S>; the public signature above uses plain S
-  const combined = combineReducers(reducers) as unknown as (state: S | undefined, action: any) => S
+  // combineReducers returns a conditional type that TypeScript can't resolve
+  // for a generic M; this is what it resolves to for any reducers map
+  const combined = combineReducers(reducers) as unknown as Reducer<
+    StateFromReducersMapObject<M>,
+    ActionFromReducersMapObject<M>,
+    Partial<PreloadedStateShapeFromReducersMapObject<M>>
+  >
   return persistReducer(config, combined)
 }
