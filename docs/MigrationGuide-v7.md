@@ -46,6 +46,10 @@ Leaving it in place is harmless.
   out, the stored state is applied when it arrives (with a second `REHYDRATE`)
   instead of being dropped, and writes resume then. See
   [When stored state can't be read](api.md#when-stored-state-cant-be-read).
+- **`persistCombineReducers` is generic over the reducers map**, like Redux 5's
+  `combineReducers`. If you passed a type argument
+  (`persistCombineReducers<RootState>(...)`), remove it; the state type is
+  inferred from the reducers.
 - **`REHYDRATE` errors are plain objects.** When reading storage fails,
   `action.err` is `{ name, message }` instead of an `Error` instance, so it can
   be serialized. Code that reads `action.err.message` keeps working; code that
