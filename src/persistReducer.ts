@@ -124,8 +124,8 @@ export default function persistReducer<S, A extends Action = UnknownAction, P = 
       if (store.persistoid) {
         // write what the previous writer had pending now, and cancel its
         // timer, so it can't overwrite newer state later
-        store.persistoid.flush()
-        store.persistoid = createPersistoid(config)
+        const pending = store.persistoid.flush()
+        store.persistoid = createPersistoid(config, pending)
       }
     }
     return store

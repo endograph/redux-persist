@@ -119,3 +119,48 @@ test('nested persist two levels deep keeps saving after the parent rehydrates', 
   await persistor.flush()
   t.is(childValue(storage.data['persist:child']), 11)
 })
+
+test('replacing the reducer: a slow write from the previous writer cannot land after a newer one', async t => {
+  const data: Record<string, any> = {}
+  let slowNext = false
+  const storage = {
+    getItem: (key: string) => Promise.resolve(data[key]),
+    // the previous writer's write is slow, the new writer's is fast
+    setItem: (key: string, value: any) => {
+      const delay = slowNext ? 50 : 0
+      slowNext = false
+      return sleep(delay).then(() => { data[key] = value })
+    },
+    removeItem: (key: string) => { delete data[key]; return Promise.resolve() },
+  }
+  const config = { key: 'root', storage, throttle: 100 }
+  const reducer = (state: any = { value: 0 }, action: any) => (action.type === 'SET' ? { value: action.value } : state)
+  const store = createStore(persistReducer(config, reducer))
+  const persistor = await bootstrap(store)
+
+  store.dispatch({ type: 'SET', value: 1 })
+  slowNext = true
+  store.replaceReducer(persistReducer(config, reducer)) // flushes the pending 1, slowly
+  store.dispatch({ type: 'SET', value: 2 })
+  await persistor.flush()
+  t.is(JSON.parse(JSON.parse(data['persist:root']).value), 2)
+  await sleep(80) // past the slow write
+  t.is(JSON.parse(JSON.parse(data['persist:root']).value), 2)
+})
+
+test('after replacing the reducer, writes are synchronous again once the previous write settles', async t => {
+  const storage = createStorage({})
+  let syncWrites = 0
+  const syncStorage = { ...storage, setItem: (key: string, value: any) => { syncWrites++; return storage.setItem(key, value) } }
+  const config = { key: 'root', storage: syncStorage }
+  const reducer = (state: any = { value: 0 }, action: any) => (action.type === 'SET' ? { value: action.value } : state)
+  const store = createStore(persistReducer(config, reducer))
+  const persistor = await bootstrap(store)
+  store.replaceReducer(persistReducer(config, reducer))
+  await sleep(0)
+
+  const before = syncWrites
+  store.dispatch({ type: 'SET', value: 5 })
+  persistor.flush() // e.g. from beforeunload: must reach storage before returning
+  t.is(syncWrites, before + 1)
+})
