@@ -159,4 +159,6 @@ To go deeper than one level, use [nested persists](docs/nested-persists.md).
 
 Issues and pull requests are welcome. Triage is ongoing in
 [#1486](https://github.com/endograph/redux-persist/issues/1486); if you have
-an open pull request, comment there and we'll get it reviewed.
+an open pull request, comment there and we'll get it reviewed. See
+[CONTRIBUTING.md](CONTRIBUTING.md) before changing anything that touches stored
+data.

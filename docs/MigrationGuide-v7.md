@@ -7,6 +7,12 @@ line is maintained on the `v6` branch. This guide is updated as v7 changes land.
 
 - **Redux 5** (or Redux Toolkit 2). The `redux` peer dependency is now `^5.0.0`.
 
+## Stored data
+
+No migration is needed: v7 reads data written by v5 and v6 and writes the same
+format, so you can also roll back to v6 without losing data. See
+[storage-format.md](storage-format.md).
+
 ## Redux Toolkit works without extra setup
 
 redux-persist's actions no longer contain functions, so RTK's serializability
