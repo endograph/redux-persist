@@ -32,6 +32,32 @@ check passes without configuration. Remove the `ignoredActions` setup:
 
 Leaving it in place is harmless.
 
+## `allowlist` and `denylist`
+
+`whitelist` and `blacklist` are now `allowlist` and `denylist`. The old names
+keep working (in `persistReducer`, `persistCombineReducers` and
+`createTransform`) and are marked deprecated, so you can switch at your own
+pace. The stored data is the same either way.
+
+The new names are checked against your state's keys, so typos are caught:
+
+```ts
+persistReducer({ key: 'root', storage, allowlist: ['usr'] }, rootReducer)
+// error: Type '"usr"' is not assignable to type '"settings" | "user"'. Did you mean '"user"'?
+```
+
+If you declare the config separately, TypeScript widens the array to
+`string[]`. Annotate the config, or use `as const`:
+
+```ts
+const persistConfig: PersistConfig<RootState> = { key: 'root', storage, allowlist: ['user'] }
+// or
+const persistConfig = { key: 'root', storage, allowlist: ['user'] as const }
+```
+
+If both an old and a new name are set, the new one is used and a warning is
+logged in development.
+
 ## Breaking changes
 
 - **Use the persistor to persist, purge and flush.** `PERSIST`, `PURGE` and

@@ -10,7 +10,7 @@ API changes are allowed in major versions. Changes to stored data are not:
 
 1. **Read everything earlier versions wrote.** Data written by v5 and v6 must be
    read correctly with no migration step, including custom `keyPrefix`,
-   `version` with `migrate`, `whitelist`/`blacklist`, nested persists and
+   `version` with `migrate`, `allowlist`/`denylist` (and `whitelist`/`blacklist`), nested persists and
    `serialize: false`.
 2. **Write the same format.** Apps must be able to roll back to an earlier
    major version without losing data.
@@ -54,11 +54,11 @@ storage['persist:root'] ===
   '{"_persist":"{\\"version\\":-1,\\"rehydrated\\":true}","user":"{\\"name\\":\\"Ada\\"}","count":"3"}'
 ```
 
-- Keys excluded by `whitelist`/`blacklist` are not stored.
+- Keys excluded by `allowlist`/`denylist` (or the older `whitelist`/`blacklist`) are not stored.
 - `_persist.version` is the config `version` (default `-1`) and drives `migrate`.
 - Transforms run on each top-level value before it is serialized (`in`) and
   after it is deserialized (`out`).
 - With `serialize: false` the same object is stored without any JSON encoding,
   for storage engines that accept objects.
 - Nested persists are stored separately under their own key; the parent
-  excludes them with `blacklist`.
+  excludes them with `denylist` (or `blacklist`).

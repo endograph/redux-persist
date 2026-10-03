@@ -74,6 +74,25 @@ const transform: Transform<UserState, UserState> = createTransform(
 
 const rehydrate: RehydrateAction | undefined = undefined
 
+// allowlist/denylist are checked against state keys
+persistReducer({ key: 'allow', storage, allowlist: ['user'] }, rootReducer)
+// @ts-expect-error typos in allowlist are caught
+persistReducer({ key: 'allow-typo', storage, allowlist: ['usr'] }, rootReducer)
+// @ts-expect-error typos in denylist are caught
+persistReducer({ key: 'deny-typo', storage, denylist: ['setings'] }, rootReducer)
+const annotatedConfig: PersistConfig<ReturnType<typeof rootReducer>> = { key: 'annotated', storage, denylist: ['user'] }
+persistReducer(annotatedConfig, rootReducer)
+const constConfig = { key: 'const', storage, allowlist: ['user'] as const }
+persistReducer(constConfig, rootReducer)
+persistReducer({ key: 'slice', storage, denylist: ['name'] }, user)
+persistCombineReducers({ key: 'combined-allow', storage, allowlist: ['settings'] }, { user, settings })
+
+// deprecated whitelist/blacklist still accept any strings, including a separately declared config
+const legacyConfig = { key: 'legacy', storage, whitelist: ['user'] }
+persistReducer(legacyConfig, rootReducer)
+const legacyKeys: string[] = ['user']
+persistReducer({ key: 'legacy-keys', storage, blacklist: legacyKeys }, rootReducer)
+
 // RTK: preloadedState doesn't need _persist (#1169, #1459), and state stays typed
 const rtkStore = configureStore({
   reducer: persistReducer({ key: 'rtk', storage }, rootReducer),

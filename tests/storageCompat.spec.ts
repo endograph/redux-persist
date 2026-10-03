@@ -70,6 +70,22 @@ for (const fixture of flat) {
   })
 }
 
+// allowlist/denylist are the v7 names for whitelist/blacklist and must write the same bytes
+const renamed = (config: any) => {
+  const { whitelist, blacklist, ...rest } = config
+  return { ...rest, ...(whitelist && { allowlist: whitelist }), ...(blacklist && { denylist: blacklist }) }
+}
+for (const fixture of fixtures.filter(f => f.name === 'whitelist' || f.name === 'blacklist')) {
+  test(`writes ${fixture.name} exactly like v${fixture.version} using the v7 option name`, async t => {
+    const storage = memoryStorage()
+    const store = createStore(persistReducer({ ...renamed(fixture.config), storage }, settable('SET')))
+    const persistor = await bootstrap(store)
+    store.dispatch({ type: 'SET', state: fixture.state })
+    await persistor.flush()
+    t.deepEqual(storage.data, fixture.storage)
+  })
+}
+
 for (const fixture of fixtures.filter(f => f.name === 'versioned')) {
   test(`migrates versioned state written by v${fixture.version}`, async t => {
     const storage = memoryStorage(fixture.storage)

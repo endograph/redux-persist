@@ -1,13 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { KEY_PREFIX } from './constants'
+import createKeyFilter from './keyFilter'
 
 import type { Persistoid, PersistConfig } from './types'
 import { KeyAccessState } from './types'
 
 export default function createPersistoid(config: PersistConfig<any>): Persistoid {
   // defaults
-  const blacklist: string[] | null = config.blacklist || null
-  const whitelist: string[] | null = config.whitelist || null
+  // _persist is always written, even when the allowlist doesn't list it
+  const passesKeyFilter = createKeyFilter(config, `persist config "${config.key}"`, ['_persist'])
   const transforms = config.transforms || []
   const throttle = config.throttle || 0
   const storageKey = `${
@@ -34,7 +35,7 @@ export default function createPersistoid(config: PersistConfig<any>): Persistoid
   const update = (state: KeyAccessState) => {
     // add any changed keys to the queue
     Object.keys(state).forEach(key => {
-      if (!passWhitelistBlacklist(key)) return // is keyspace ignored? noop
+      if (!passesKeyFilter(key)) return // is keyspace ignored? noop
       if (lastState[key] === state[key]) return // value unchanged? noop
       if (keysToProcess.indexOf(key) !== -1) return // is key already queued? noop
       keysToProcess.push(key) // add key to queue
@@ -45,7 +46,7 @@ export default function createPersistoid(config: PersistConfig<any>): Persistoid
     Object.keys(lastState).forEach(key => {
       if (
         state[key] === undefined &&
-        passWhitelistBlacklist(key) &&
+        passesKeyFilter(key) &&
         keysToProcess.indexOf(key) === -1 &&
         lastState[key] !== undefined
       ) {
@@ -114,12 +115,6 @@ export default function createPersistoid(config: PersistConfig<any>): Persistoid
       .catch(onWriteFail)
   }
 
-  function passWhitelistBlacklist(key: string) {
-    if (whitelist && whitelist.indexOf(key) === -1 && key !== '_persist')
-      return false
-    if (blacklist && blacklist.indexOf(key) !== -1) return false
-    return true
-  }
 
   function onWriteFail(err: any) {
     // @TODO add fail handlers (typically storage full)
