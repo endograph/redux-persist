@@ -140,6 +140,13 @@ logged in development.
   `combineReducers`. If you passed a type argument
   (`persistCombineReducers<RootState>(...)`), remove it; the state type is
   inferred from the reducers.
+- **Persistence state is per store.** When one persisted reducer is shared
+  by several stores (a store per server request or per test), pausing,
+  purging or a failed read in one store no longer affects the others. A store
+  created with preloaded state that already has a `_persist` key (for example
+  state rendered on the server) now loads stored state and bootstraps instead
+  of waiting forever. After `replaceReducer` with a new persisted reducer (hot
+  reloading), state keeps being saved.
 - **`REHYDRATE` errors are plain objects.** When reading storage fails,
   `action.err` is `{ name, message }` instead of an `Error` instance, so it can
   be serialized. Code that reads `action.err.message` keeps working; code that
