@@ -142,6 +142,8 @@ export default function persistReducer<S, A extends Action>(
                 _rehydrate(undefined, migrateErr)
               }
             )
+          } else {
+            _rehydrate(undefined)
           }
         },
         err => {
