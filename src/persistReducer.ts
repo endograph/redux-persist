@@ -71,6 +71,7 @@ export default function persistReducer<S, A extends Action>(
 
     if (action.type === PERSIST) {
       let _sealed = false
+      let timer: ReturnType<typeof setTimeout> | undefined
       const _rehydrate = (payload: any, err?: Error) => {
         // dev warning if we are already sealed
         if (process.env.NODE_ENV !== 'production' && _sealed)
@@ -86,10 +87,11 @@ export default function persistReducer<S, A extends Action>(
         if (!_sealed) {
           action.rehydrate(config.key, payload, err)
           _sealed = true
+          clearTimeout(timer)
         }
       }
-      timeout &&
-        setTimeout(() => {
+      if (timeout) {
+        timer = setTimeout(() => {
           !_sealed &&
             _rehydrate(
               undefined,
@@ -100,6 +102,7 @@ export default function persistReducer<S, A extends Action>(
               )
             )
         }, timeout)
+      }
 
       // @NOTE PERSIST resumes if paused.
       _paused = false
