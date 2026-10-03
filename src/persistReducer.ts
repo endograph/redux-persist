@@ -24,6 +24,31 @@ import defaultGetStoredState from './getStoredState.js'
 import purgeStoredState from './purgeStoredState.js'
 
 const DEFAULT_TIMEOUT = 5000
+// Persistence state for each store using a persistReducer. A persisted reducer
+// is usually created once and shared by every store built from it (a store per
+// server request or per test), so this state can't live in its closure. It's
+// keyed by the store's _persist object, which only persistReducer creates and
+// which isn't stored (the stored _persist is written from its fields).
+interface PersistedStore {
+  owner: object
+  persistoid: Persistoid | null
+  // purged: REHYDRATE no longer changes state
+  purged: boolean
+  paused: boolean
+  // The stored state couldn't be read (storage error, unparseable data,
+  // failed migration or timeout). Writing then would replace the user's
+  // stored data with initial state (#809), so writes stay off until the
+  // stored state is read or purged.
+  readFailed: boolean
+}
+const stores = new WeakMap<object, PersistedStore>()
+const storeFor = (persist: unknown): PersistedStore | undefined =>
+  persist && typeof persist === 'object' ? stores.get(persist) : undefined
+const trackStore = <T extends object>(persist: T, store: PersistedStore): T => {
+  stores.set(persist, store)
+  return persist
+}
+
 /*
   @TODO add validation / handling for:
   - persisting a reducer which has nested _persist
@@ -51,28 +76,37 @@ export default function persistReducer<S, A extends Action = UnknownAction, P = 
   const getStoredState = config.getStoredState || defaultGetStoredState
   const timeout =
     config.timeout !== undefined ? config.timeout : DEFAULT_TIMEOUT
-  let _persistoid: Persistoid | null = null
-  let _purge = false
-  let _paused = true
-  // Set when the stored state couldn't be read (storage error, unparseable
-  // data, failed migration or timeout). Writing then would replace the user's
-  // stored data with initial state (#809), so writes stay off until the stored
-  // state is read or purged.
-  let _readFailed = false
+  // identifies this persistReducer instance (see adoptStore)
+  const owner = {}
   const conditionalUpdate = (state: any) => {
     // update the persistoid only if we are rehydrated, not paused, and the
     // stored state was read
-    state._persist.rehydrated &&
-      _persistoid &&
-      !_paused &&
-      !_readFailed &&
-      _persistoid.update(state)
+    const store = storeFor(state._persist)
+    store &&
+      state._persist.rehydrated &&
+      store.persistoid &&
+      !store.paused &&
+      !store.readFailed &&
+      store.persistoid.update(state)
     return state
+  }
+  // A store this instance hasn't seen (after replaceReducer with a new
+  // persistReducer, e.g. hot reloading) keeps its state but gets a persistoid
+  // built from this instance's config.
+  const adoptStore = (store: PersistedStore | undefined) => {
+    if (store && store.owner !== owner) {
+      store.owner = owner
+      store.persistoid = store.persistoid && createPersistoid(config)
+    }
+    return store
   }
 
   return (state: any, action: any) => {
     const { _persist, ...rest } = state || {}
     const restState: S = rest
+    // undefined when this store hasn't been persisted (including state
+    // preloaded from elsewhere, e.g. server rendering, that has a _persist key)
+    const store = adoptStore(storeFor(_persist))
 
     if (action.type === PERSIST) {
       const handle = getHandle(action)
@@ -86,6 +120,14 @@ export default function persistReducer<S, A extends Action = UnknownAction, P = 
         return _persist ? state : baseReducer(state, action)
       }
       const { register, rehydrate } = handle
+      // a repeat PERSIST for this store reuses its state; otherwise start fresh
+      const persisted: PersistedStore = store || {
+        owner,
+        persistoid: null,
+        purged: false,
+        paused: true,
+        readFailed: false,
+      }
       let _sealed = false
       let _timedOut = false
       let timer: ReturnType<typeof setTimeout> | undefined
@@ -94,14 +136,14 @@ export default function persistReducer<S, A extends Action = UnknownAction, P = 
           // The read finished after the timeout: apply the stored state now
           // and resume writing. If it failed, writes stay off.
           if (_timedOut && !err) {
-            _readFailed = false
+            persisted.readFailed = false
             rehydrate(config.key, payload)
           }
           return
         }
 
         if (err) {
-          _readFailed = true
+          persisted.readFailed = true
           if (process.env.NODE_ENV !== 'production')
             console.error(
               _timedOut
@@ -131,13 +173,13 @@ export default function persistReducer<S, A extends Action = UnknownAction, P = 
       }
 
       // @NOTE PERSIST resumes if paused.
-      _paused = false
+      persisted.paused = false
 
-      // @NOTE only ever create persistoid once, ensure we call it at least once, even if _persist has already been set
-      if (!_persistoid) _persistoid = createPersistoid(config)
+      // @NOTE only ever create persistoid once per store
+      if (!persisted.persistoid) persisted.persistoid = createPersistoid(config)
 
       // @NOTE PERSIST can be called multiple times, noop after the first
-      if (_persist) {
+      if (store) {
         // This PERSIST will not rehydrate, so cancel its timeout
         _sealed = true
         clearTimeout(timer)
@@ -178,14 +220,14 @@ export default function persistReducer<S, A extends Action = UnknownAction, P = 
 
       return {
         ...baseReducer(restState, action),
-        _persist: { version, rehydrated: false },
+        _persist: trackStore({ version, rehydrated: false }, persisted),
       }
     } else if (action.type === PURGE) {
       const handle = getHandle(action)
-      if (handle && handle.result) {
-        _purge = true
+      if (store && handle && handle.result) {
+        store.purged = true
         // stored data is gone, so there is nothing left to protect
-        _readFailed = false
+        store.readFailed = false
         handle.result(purgeStoredState(config))
       }
       return {
@@ -194,19 +236,19 @@ export default function persistReducer<S, A extends Action = UnknownAction, P = 
       }
     } else if (action.type === FLUSH) {
       const handle = getHandle(action)
-      if (handle && handle.result) handle.result(_persistoid && _persistoid.flush())
+      if (handle && handle.result) handle.result(store && store.persistoid && store.persistoid.flush())
       return {
         ...baseReducer(restState, action),
         _persist,
       }
     } else if (action.type === PAUSE) {
-      _paused = true
-    } else if (action.type === REHYDRATE) {
+      if (store) store.paused = true
+    } else if (action.type === REHYDRATE && store) {
       // noop on restState if purging
-      if (_purge)
+      if (store.purged)
         return {
           ...restState,
-          _persist: { ..._persist, rehydrated: true },
+          _persist: trackStore({ ..._persist, rehydrated: true }, store),
         }
 
       // @NOTE if key does not match, will continue to default else below
@@ -221,7 +263,7 @@ export default function persistReducer<S, A extends Action = UnknownAction, P = 
 
         const newState = {
           ...reconciledRest,
-          _persist: { ..._persist, rehydrated: true },
+          _persist: trackStore({ ..._persist, rehydrated: true }, store),
         }
         return conditionalUpdate(newState)
       }
