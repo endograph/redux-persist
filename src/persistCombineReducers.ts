@@ -1,21 +1,23 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Action, AnyAction, CombinedState, combineReducers, Reducer, ReducersMapObject } from 'redux'
+import { combineReducers, ReducersMapObject } from 'redux'
 import persistReducer from './persistReducer'
 import autoMergeLevel2 from './stateReconciler/autoMergeLevel2'
 
-import type { 
-  PersistConfig
+import type {
+  PersistConfig,
+  PersistState,
 } from './types'
 
 // combineReducers + persistReducer with stateReconciler defaulted to autoMergeLevel2
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export default function persistCombineReducers<S, A extends Action>(
-  config: PersistConfig<any>,
-  reducers: ReducersMapObject<CombinedState<S>, Action<any>>
-): Reducer<any, AnyAction> {
+export default function persistCombineReducers<S>(
+  config: PersistConfig<S>,
+  reducers: ReducersMapObject<S, any>
+): (state: (S & { _persist?: PersistState }) | undefined, action: any) => S & { _persist: PersistState } {
   config.stateReconciler =
     config.stateReconciler === undefined
       ? autoMergeLevel2
       : config.stateReconciler
-  return persistReducer(config, combineReducers(reducers))
+  // Redux 4 brands combined state as CombinedState<S>; the public signature above uses plain S
+  const combined = combineReducers(reducers) as unknown as (state: S | undefined, action: any) => S
+  return persistReducer(config, combined)
 }
