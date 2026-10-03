@@ -8,3 +8,4 @@ export { default as createPersistoid } from './createPersistoid'
 export { default as purgeStoredState } from './purgeStoredState'
 
 export * from './constants'
+export * from './types'
