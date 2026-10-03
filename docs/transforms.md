@@ -13,6 +13,8 @@ There are several libraries that tackle some common implementations for transfor
 
 When the state object gets persisted, it first gets serialized with `JSON.stringify()`. If parts of your state object are not mappable to JSON objects, the serialization process may transform these parts of your state in unexpected ways. For example, the javascript [Set](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set) type does not exist in JSON. When you try to serialize a Set via `JSON.stringify()`, it gets converted to an empty object. Probably not what you want.
 
+The `inboundState` and `outboundState` passed to a transform are not the whole state: each is the sub-state of one top-level key (the `key` argument), and the value the transform returns becomes the state stored for, or restored to, that key. A transform runs for every top-level key that passes its `allowlist`/`denylist`.
+
 Below is a Transform that successfully persists a Set property, which simply converts it to an array and back. In this way, the Set gets converted to an Array, which is a recognized data structure in JSON. When pulled out of the persisted store, the array gets converted back to a Set before being saved to the redux store.
 
 ```js
