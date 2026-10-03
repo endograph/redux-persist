@@ -168,7 +168,10 @@
     }
   },
   "sideEffects": false,
-  "repository": "endograph/redux-persist",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/endograph/redux-persist.git"
+  },
   "files": [
     "es",
     "lib",

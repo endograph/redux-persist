@@ -13,20 +13,23 @@
 
 [![CI](https://img.shields.io/github/actions/workflow/status/endograph/redux-persist/ci.yml?branch=master)](https://github.com/endograph/redux-persist/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/redux-persist)](https://www.npmjs.com/package/redux-persist)
+[![npm next](https://img.shields.io/npm/v/redux-persist/next?label=next)](https://www.npmjs.com/package/redux-persist?activeTab=versions)
 [![downloads](https://img.shields.io/npm/dm/redux-persist)](https://www.npmjs.com/package/redux-persist)
 [![license](https://img.shields.io/npm/l/redux-persist)](LICENSE)
 
 Persist and rehydrate a redux store. Your state is saved to storage as it
 changes and restored into the store when your app starts.
 
-> Hey all! Sorry for the silence. I am back and redux persist will be
-> maintained again. Starting a triage pass now, there's a lot to cover 🫠
-> ([#1486](https://github.com/endograph/redux-persist/issues/1486))
-
-> **These docs are for redux-persist 7**, which is in beta
-> (`npm install redux-persist@next`). It needs Redux 5 or Redux Toolkit 2.
-> Upgrading from 6? Read the [migration guide](docs/MigrationGuide-v7.md); your
-> stored data carries over as is. For 6.x, see the
+> Hey all! redux-persist is maintained again, and **v7 is in beta**
+> (`npm install redux-persist@next`): Redux Toolkit 2 support with no extra
+> setup, a fix for stored data getting wiped
+> ([#809](https://github.com/endograph/redux-persist/issues/809)), and lots
+> more. Please try it and tell us how it goes in
+> [#1486](https://github.com/endograph/redux-persist/issues/1486).
+>
+> These docs are for v7, which needs Redux 5 or Redux Toolkit 2. Upgrading
+> from 6? Read the [migration guide](docs/MigrationGuide-v7.md); your stored
+> data carries over as is. For 6.x, see the
 > [v6 docs](https://github.com/endograph/redux-persist/tree/v6#readme).
 
 - **Drop-in.** Wrap your root reducer with `persistReducer` and call
@@ -156,8 +159,6 @@ To go deeper than one level, use [nested persists](docs/nested-persists.md).
 
 ## Contributing
 
-Issues and pull requests are welcome. Triage is ongoing in
-[#1486](https://github.com/endograph/redux-persist/issues/1486); if you have
-an open pull request, comment there and we'll get it reviewed. See
-[CONTRIBUTING.md](CONTRIBUTING.md) before changing anything that touches stored
-data.
+Issues and pull requests are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md),
+especially before changing anything that touches stored data. Feedback on the
+v7 beta goes in [#1486](https://github.com/endograph/redux-persist/issues/1486).
