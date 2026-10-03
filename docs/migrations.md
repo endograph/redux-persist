@@ -4,6 +4,8 @@
 
 Redux Persist ships with `createMigrate`, which helps create a synchronous migration for moving from any version of stored state to the current state version.
 
+Redux Persist runs every migration whose version is above the version of the stored state, up to the current `version`, in ascending order, and uses the result as the state to rehydrate. So whenever you change the shape of persisted state and want to keep your users' existing data, add a migration for the new version and increase `version` in the persist config.
+
 ### Example with createMigrate
 ```js
 import { createMigrate, persistReducer, persistStore } from 'redux-persist'
