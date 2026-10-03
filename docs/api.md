@@ -1,12 +1,26 @@
 # Redux Persist API
 ---
+## Imports
+
+| Import | What |
+|---|---|
+| `redux-persist` | `persistReducer`, `persistStore`, `persistCombineReducers`, `createMigrate`, `createTransform`, `getStoredState`, `purgeStoredState`, `createPersistoid`, action types and all types |
+| `redux-persist/storage` | localStorage storage engine (noop on the server) |
+| `redux-persist/storage/session` | sessionStorage storage engine |
+| `redux-persist/storage/createWebStorage` | `createWebStorage('local' \| 'session')` |
+| `redux-persist/react` | `PersistGate`, `useRehydrated` |
+| `redux-persist/stateReconciler/hardSet`, `autoMergeLevel1`, `autoMergeLevel2` | state reconcilers |
+
+The v6 paths (`redux-persist/lib/...`, `redux-persist/es/...`,
+`redux-persist/integration/react`) keep working.
+
 ## Quick reference
 
 ### `persistReducer(config, reducer)`
   - arguments
     - [**config**](#type-persistconfig) *object*
       - required config: `key, storage`
-      - notable other config: `whitelist, blacklist, version, stateReconciler, debug`
+      - notable other config: `allowlist, denylist, version, migrate, stateReconciler, throttle, debug`
     - **reducer** *function*
       - any reducer will work, typically this would be the top level reducer returned by `combineReducers`
   - returns an enhanced reducer
@@ -29,6 +43,10 @@
       - pauses persistence
     - `.persist()`
       - resumes persistence
+    - `.getState()`
+      - `{ registry, bootstrapped }`; `bootstrapped` is true once stored state has loaded
+    - `.subscribe(listener)`
+      - calls `listener` when the persistor's state changes; returns an unsubscribe function
 
 ---
 ## Standard API
@@ -50,7 +68,7 @@ Where Reducer is any reducer `(state, action) => state` and PersistConfig is [de
 ```js
 persistStore(
   store: Store,
-  config?: { enhancer?: Function },
+  config?: { enhancer?: Function, manualPersist?: boolean } | null,
   callback?: () => {}
 ): Persistor
 ```
@@ -70,6 +88,10 @@ createMigrate(
 {
   purge: () => Promise<void>,
   flush: () => Promise<void>,
+  pause: () => void,
+  persist: () => void,
+  getState: () => { registry: Array<string>, bootstrapped: boolean },
+  subscribe: (listener: () => void) => () => void,
 }
 ```
 
@@ -104,15 +126,18 @@ With the built-in `localStorage` and `sessionStorage` engines, `flush()` writes 
   key: string, // the key for the persist
   storage: Object, // the storage adapter, following the AsyncStorage api
   version?: number, // the state version as an integer (defaults to -1)
-  blacklist?: Array<string>, // do not persist these keys
-  whitelist?: Array<string>, // only persist these keys
+  allowlist?: Array<keyof State>, // only persist these keys
+  denylist?: Array<keyof State>, // do not persist these keys
+  whitelist?: Array<string>, // deprecated: older name for allowlist
+  blacklist?: Array<string>, // deprecated: older name for denylist
   migrate?: (Object, number) => Promise<Object>,
   transforms?: Array<Transform>,
   throttle?: number, // ms to throttle state writes
   keyPrefix?: string, // will be prefixed to the storage key
   debug?: boolean, // true -> verbose logs
   stateReconciler?: false | StateReconciler, // false -> do not automatically reconcile state
-  serialize?: boolean, // false -> do not call JSON.parse & stringify when setting & getting from storage
+  serialize?: boolean | Function, // false -> store values as is; or a custom serializer (defaults to JSON.stringify)
+  deserialize?: boolean | Function, // false -> read values as is; or a custom deserializer (defaults to JSON.parse)
   writeFailHandler?: Function, // will be called if the storage engine fails during setItem()
   timeout?: number, // ms to wait for stored state before starting without it (defaults to 5000, 0 to wait forever)
 }
@@ -129,10 +154,20 @@ If reading takes longer than `timeout`, the app starts the same way, with `err` 
 ### `type MigrationManifest`
 ```js
 {
-  [number]: (State) => State
+  [number]: (State) => State | Promise<State>
 }
 ```
-Where the keys are state version numbers and the values are migration functions to modify state.
+Where the keys are state version numbers and the values are migration functions to modify state. Migrations may be async; they run in version order.
+
+### `REHYDRATE` action
+```js
+{
+  type: 'persist/REHYDRATE',
+  key: string, // the persistReducer's config key
+  payload?: State, // the stored state, if any
+  err?: { name: string, message: string }, // set when reading stored state failed or timed out
+}
+```
 
 ---
 ## Expanded API

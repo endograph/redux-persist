@@ -1,8 +1,10 @@
 # Storage Engines
 
 ## Built in
-- **localStorage** `import storage from 'redux-persist/lib/storage'`
-- **sessionStorage** `import storageSession from 'redux-persist/lib/storage/session'`
+- **localStorage** `import storage from 'redux-persist/storage'`
+- **sessionStorage** `import storageSession from 'redux-persist/storage/session'`
+
+Both store nothing during server rendering (no `window`), and stored state is loaded in the browser. If the browser blocks storage (for example in some privacy modes), a warning is logged in development and state isn't persisted.
 - **custom** any conforming storage api implementing the following methods: `setItem` `getItem` `removeItem`. (**NB**: These methods must support promises)
 
 ## Community

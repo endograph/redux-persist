@@ -30,7 +30,7 @@ const SetTransform = createTransform(
     return { ...outboundState, mySet: new Set(outboundState.mySet) };
   },
   // define which reducers this transform gets called for.
-  { whitelist: ['someReducer'] }
+  { allowlist: ['someReducer'] }
 );
 
 export default SetTransform;
@@ -44,7 +44,7 @@ The `createTransform` function takes three parameters.
 In order to take effect transforms need to be added to a `PersistReducer`’s config object.
 
 ```
-import storage from 'redux-persist/lib/storage';
+import storage from 'redux-persist/storage';
 import { SetTransform } from './transforms';
 
 const persistConfig = {

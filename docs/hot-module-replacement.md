@@ -25,3 +25,5 @@ export default () => {
   return { store, persistor }
 }
 ```
+
+The store keeps saving state after the reducer is replaced; there's no need to call `persistor.persist()` again.
