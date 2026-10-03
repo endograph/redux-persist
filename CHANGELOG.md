@@ -26,6 +26,10 @@ and v7 writes the same format. See the [migration guide](docs/MigrationGuide-v7.
 - `PERSIST`, `PURGE` and `FLUSH` dispatched outside the persistor are ignored (devtools replay no longer throws or purges storage)
 - Throttled writes are batched into one write per interval
 
+### Removed
+- The UMD build (`dist/redux-persist.js`, `dist/redux-persist.min.js`). Use a bundler or an ES module CDN; see the migration guide
+- TypeScript sources (`src/`) from the published package
+
 ### Fixed
 - Stored data is no longer overwritten with initial state after a failed or timed-out read (#809)
 - 5-second hang and timeout error on first run with empty storage

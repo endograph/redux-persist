@@ -164,3 +164,40 @@ test('after replacing the reducer, writes are synchronous again once the previou
   persistor.flush() // e.g. from beforeunload: must reach storage before returning
   t.is(syncWrites, before + 1)
 })
+
+for (const replacements of [1, 2]) {
+  test(`flush preserves the inherited write across ${replacements} reducer replacement(s)`, async t => {
+    const storage = createStorage({})
+    let finishPreviousWrite!: () => void
+    const previousWrite = new Promise<void>(resolve => { finishPreviousWrite = resolve })
+    t.teardown(finishPreviousWrite)
+    const delayedStorage = {
+      ...storage,
+      setItem: (key: string, value: string) => {
+        const write = () => storage.setItem(key, value)
+        return childValue(value) === 1 ? previousWrite.then(write) : write()
+      },
+    }
+    const config = { key: 'root', storage: delayedStorage, throttle: 1000 }
+    const store = createStore(persistReducer(config, counter))
+    const persistor = await bootstrap(store)
+    await persistor.flush()
+
+    store.dispatch({ type: 'SET_CHILD', value: 1 })
+    for (let i = 0; i < replacements; i++)
+      store.replaceReducer(persistReducer(config, counter))
+
+    // With one replacement, flush must wait even without a new update. With
+    // two, the intermediate writer must pass the dependency to its successor.
+    if (replacements === 2) store.dispatch({ type: 'SET_CHILD', value: 2 })
+    let flushed = false
+    const flushing = persistor.flush().then(() => { flushed = true })
+    await new Promise<void>(resolve => setImmediate(resolve))
+    t.false(flushed)
+    t.is(childValue(storage.data['persist:root']), 0)
+
+    finishPreviousWrite()
+    await flushing
+    t.is(childValue(storage.data['persist:root']), replacements)
+  })
+}

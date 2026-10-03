@@ -30,15 +30,16 @@ for (const dep of ['redux', 'react', '@types/react']) {
 const specs = new Set(['redux-persist'])
 for (const file of readFileSync(join(root, 'scripts/check-package/v6-paths.txt'), 'utf8').trim().split('\n')) {
   if (file === 'integration/react/package.json') { specs.add('redux-persist/integration/react'); continue }
-  specs.add(`redux-persist/${file}`)
+  // the UMD bundles in dist/ were removed in v7
   if (file.startsWith('dist/')) continue
+  specs.add(`redux-persist/${file}`)
   specs.add(`redux-persist/${file.replace(/\.js$/, '')}`)
   if (file.endsWith('/index.js')) specs.add(`redux-persist/${file.replace(/\/index\.js$/, '')}`)
 }
 for (const path of ['storage', 'storage/session', 'storage/createWebStorage', 'react', 'stateReconciler/autoMergeLevel1', 'stateReconciler/autoMergeLevel2', 'stateReconciler/hardSet', 'integration/getStoredStateMigrateV4'])
   specs.add(`redux-persist/${path}`)
 const all = [...specs].sort()
-const typed = all.filter(spec => !spec.includes('/dist/'))
+const typed = all
 
 const failures = []
 const requireFromProject = createRequire(join(project, 'index.js'))

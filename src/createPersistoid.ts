@@ -147,7 +147,9 @@ export default function createPersistoid(
       processNextKey()
     }
 
-    return writePromise || Promise.resolve()
+    // A replacement may not have written yet, but flush (and the next
+    // replacement) must still wait for the write inherited from its predecessor.
+    return writePromise || waitFor || Promise.resolve()
   }
 
   // return `persistoid`
