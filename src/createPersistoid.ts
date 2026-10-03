@@ -125,13 +125,15 @@ export default function createPersistoid(config: PersistConfig<any>): Persistoid
   }
 
   function flush() {
-    while (keysToProcess.length !== 0) {
-      processNextKey()
-    }
-
+    // Clear the pending timer first: if a transform or serializer throws below,
+    // the next update must still be able to schedule a write.
     if (writeTimeout) {
       clearTimeout(writeTimeout)
       writeTimeout = null
+    }
+
+    while (keysToProcess.length !== 0) {
+      processNextKey()
     }
 
     return writePromise || Promise.resolve()

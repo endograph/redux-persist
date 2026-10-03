@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import test from 'ava'
 import sinon from 'sinon'
 import createMemoryStorage from './utils/createMemoryStorage'
@@ -74,4 +75,23 @@ test.serial('flush() writes pending changes without waiting for the throttle', (
   t.true(spy.calledOnce)
   clock.tick(1000)
   t.true(spy.calledOnce)
+})
+
+// A transform that throws once must not stop later writes: the pending timer
+// has to be cleared even when processing a key throws.
+test.serial('writes resume after a transform throws', (t) => {
+  let fail = true
+  const transform = {
+    in: (state: any) => { if (fail) throw new Error('transform failed'); return state },
+    out: (state: any) => state,
+  }
+  const { update } = createPersistoid({ key: 'test', version: 1, storage: memoryStorage, throttle: 100, transforms: [transform] })
+  update({ a: 1 })
+  t.throws(() => clock.tick(100), { message: 'transform failed' })
+
+  fail = false
+  update({ a: 2 })
+  clock.tick(100)
+  t.true(spy.calledOnce)
+  t.is(spy.firstCall.args[1], JSON.stringify({ a: '2' }))
 })
