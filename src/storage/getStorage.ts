@@ -9,36 +9,27 @@ const noopStorage = {
   getAllKeys: noop,
 }
 
-function hasStorage(storageType: string) {
-  if (typeof self !== 'object' || !(storageType in self)) {
-    return false
-  }
+// Web storage lives on `window`. Without one (server rendering, web workers)
+// there is nothing to persist to, which is expected, so use noop storage
+// without a warning. Node 25+ defines a global localStorage that is shared by
+// every request on the server; it is deliberately not used.
+export default function getStorage(type: string): Storage {
+  const storageType = `${type}Storage`
+  if (typeof window !== 'object' || window === null) return noopStorage
 
   try {
-    const storage = (self as unknown as { [key: string]: Storage})[storageType] as unknown as Storage
+    const storage = (window as unknown as { [key: string]: Storage })[storageType]
     const testKey = `redux-persist ${storageType} test`
     storage.setItem(testKey, 'test')
     storage.getItem(testKey)
     storage.removeItem(testKey)
-  } catch (e) {
+    return storage
+  } catch {
+    // missing, or blocked by the browser (privacy settings, some private modes)
     if (process.env.NODE_ENV !== 'production')
       console.warn(
-        `redux-persist ${storageType} test failed, persistence will be disabled.`
+        `redux-persist: ${storageType} is not available (it may be blocked by the browser's settings), so state won't be persisted.`
       )
-    return false
-  }
-  return true
-}
-
-export default function getStorage(type: string): Storage {
-  const storageType = `${type}Storage`
-  if (hasStorage(storageType)) return (self as unknown as { [key: string]: Storage })[storageType]
-  else {
-    if (process.env.NODE_ENV !== 'production') {
-      console.error(
-        `redux-persist failed to create sync storage. falling back to noop storage.`
-      )
-    }
     return noopStorage
   }
 }
