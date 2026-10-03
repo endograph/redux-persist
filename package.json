@@ -69,6 +69,12 @@
     "typescript-eslint": "^8.71.0"
   },
   "peerDependencies": {
-    "redux": ">4.0.0"
+    "redux": ">4.0.0",
+    "react": ">=16"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
   }
 }
