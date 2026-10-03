@@ -1,3 +1,3 @@
-import createWebStorage from './createWebStorage'
+import createWebStorage from './createWebStorage.js'
 
 export default createWebStorage('session')

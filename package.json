@@ -2,9 +2,173 @@
   "name": "redux-persist",
   "version": "6.1.0",
   "description": "persist and rehydrate redux stores",
+  "type": "commonjs",
   "main": "lib/index.js",
   "module": "es/index.js",
   "types": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./es/index.d.ts",
+        "default": "./es/index.js"
+      },
+      "require": {
+        "types": "./lib/index.d.ts",
+        "default": "./lib/index.js"
+      }
+    },
+    "./storage": {
+      "import": {
+        "types": "./es/storage/index.d.ts",
+        "default": "./es/storage/index.js"
+      },
+      "require": {
+        "types": "./lib/storage/index.d.ts",
+        "default": "./lib/storage/index.js"
+      }
+    },
+    "./storage/session": {
+      "import": {
+        "types": "./es/storage/session.d.ts",
+        "default": "./es/storage/session.js"
+      },
+      "require": {
+        "types": "./lib/storage/session.d.ts",
+        "default": "./lib/storage/session.js"
+      }
+    },
+    "./storage/createWebStorage": {
+      "import": {
+        "types": "./es/storage/createWebStorage.d.ts",
+        "default": "./es/storage/createWebStorage.js"
+      },
+      "require": {
+        "types": "./lib/storage/createWebStorage.d.ts",
+        "default": "./lib/storage/createWebStorage.js"
+      }
+    },
+    "./react": {
+      "import": {
+        "types": "./es/integration/react.d.ts",
+        "default": "./es/integration/react.js"
+      },
+      "require": {
+        "types": "./lib/integration/react.d.ts",
+        "default": "./lib/integration/react.js"
+      }
+    },
+    "./integration/react": {
+      "import": {
+        "types": "./es/integration/react.d.ts",
+        "default": "./es/integration/react.js"
+      },
+      "require": {
+        "types": "./lib/integration/react.d.ts",
+        "default": "./lib/integration/react.js"
+      }
+    },
+    "./integration/getStoredStateMigrateV4": {
+      "import": {
+        "types": "./es/integration/getStoredStateMigrateV4.d.ts",
+        "default": "./es/integration/getStoredStateMigrateV4.js"
+      },
+      "require": {
+        "types": "./lib/integration/getStoredStateMigrateV4.d.ts",
+        "default": "./lib/integration/getStoredStateMigrateV4.js"
+      }
+    },
+    "./stateReconciler/*": {
+      "import": {
+        "types": "./es/stateReconciler/*.d.ts",
+        "default": "./es/stateReconciler/*.js"
+      },
+      "require": {
+        "types": "./lib/stateReconciler/*.d.ts",
+        "default": "./lib/stateReconciler/*.js"
+      }
+    },
+    "./lib": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./lib/storage": {
+      "types": "./lib/storage/index.d.ts",
+      "default": "./lib/storage/index.js"
+    },
+    "./lib/*.js": {
+      "types": "./lib/*.d.ts",
+      "default": "./lib/*.js"
+    },
+    "./lib/*": {
+      "types": "./lib/*.d.ts",
+      "default": "./lib/*.js"
+    },
+    "./es": {
+      "import": {
+        "types": "./es/index.d.ts",
+        "default": "./es/index.js"
+      },
+      "require": {
+        "types": "./lib/index.d.ts",
+        "default": "./lib/index.js"
+      }
+    },
+    "./es/storage": {
+      "import": {
+        "types": "./es/storage/index.d.ts",
+        "default": "./es/storage/index.js"
+      },
+      "require": {
+        "types": "./lib/storage/index.d.ts",
+        "default": "./lib/storage/index.js"
+      }
+    },
+    "./es/*.js": {
+      "import": {
+        "types": "./es/*.d.ts",
+        "default": "./es/*.js"
+      },
+      "require": {
+        "types": "./lib/*.d.ts",
+        "default": "./lib/*.js"
+      }
+    },
+    "./es/*": {
+      "import": {
+        "types": "./es/*.d.ts",
+        "default": "./es/*.js"
+      },
+      "require": {
+        "types": "./lib/*.d.ts",
+        "default": "./lib/*.js"
+      }
+    },
+    "./dist/*": "./dist/*",
+    "./package.json": "./package.json"
+  },
+  "typesVersions": {
+    "*": {
+      "storage": [
+        "lib/storage/index.d.ts"
+      ],
+      "storage/session": [
+        "lib/storage/session.d.ts"
+      ],
+      "storage/createWebStorage": [
+        "lib/storage/createWebStorage.d.ts"
+      ],
+      "react": [
+        "lib/integration/react.d.ts"
+      ],
+      "stateReconciler/*": [
+        "lib/stateReconciler/*.d.ts"
+      ],
+      "integration/getStoredStateMigrateV4": [
+        "lib/integration/getStoredStateMigrateV4.d.ts"
+      ]
+    }
+  },
+  "sideEffects": false,
   "repository": "endograph/redux-persist",
   "files": [
     "src",
@@ -18,7 +182,7 @@
     "ava": "ava",
     "build": "npm run build:commonjs && npm run build:es && npm run build:umd",
     "build:commonjs": "tsc --module commonjs --outDir lib",
-    "build:es": "tsc --module es2015 --outDir es",
+    "build:es": "tsc --module es2015 --outDir es && node scripts/write-es-package-json.mjs",
     "build:umd": "rollup -c",
     "clean": "rimraf build dist es lib",
     "prepare": "npm run build",
@@ -26,7 +190,8 @@
     "test": "tsc -p tsconfig.test.json && ava",
     "version": "npm run clean && npm run build && npm run stats:size | tail -1 >> LIBSIZE.md && git add LIBSIZE.md",
     "lint": "eslint src tests",
-    "typecheck": "tsc -p tsconfig.test.json --noEmit"
+    "typecheck": "tsc -p tsconfig.test.json --noEmit",
+    "check:package": "node scripts/check-package/check.mjs"
   },
   "author": "",
   "license": "MIT",
@@ -58,8 +223,10 @@
     "@types/redux-mock-store": "^1.5.0",
     "@types/sinon": "^22.0.0",
     "ava": "^8.0.1",
+    "esbuild": "^0.28.2",
     "eslint": "^10.12.0",
     "prettier": "^3.9.9",
+    "react": "^19.3.0",
     "redux": "^5.0.1",
     "redux-mock-store": "^1.5.5",
     "rimraf": "^6.1.3",

@@ -26,3 +26,5 @@ jobs:
         run: npm run build
       - name: Test
         run: npm test
+      - name: Check package import paths
+        run: npm run check:package

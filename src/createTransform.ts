@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import createKeyFilter from './keyFilter'
-import type { KeyFilterConfig } from './keyFilter'
-import type { Transform, TransformInbound, TransformOutbound } from './types'
+import createKeyFilter from './keyFilter.js'
+import type { KeyFilterConfig } from './keyFilter.js'
+import type { Transform, TransformInbound, TransformOutbound } from './types.js'
 
 // allowlist/denylist pick the top-level keys the transform applies to
 type TransformConfig = KeyFilterConfig

@@ -1,5 +1,5 @@
-import getStorage from './getStorage'
-import type { Storage } from '../types'
+import getStorage from './getStorage.js'
+import type { Storage } from '../types.js'
 
 // The underlying storage is looked up on first use rather than when this
 // module is imported, so importing it on the server has no side effects.

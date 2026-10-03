@@ -5,8 +5,8 @@
     - this is essentially redux-perist v4 behavior
 */
 
-import type { PersistConfig } from '../types'
-import { KeyAccessState } from '../types'
+import type { PersistConfig } from '../types.js'
+import { KeyAccessState } from '../types.js'
 
 export default function autoMergeLevel2<S extends KeyAccessState>(
   inboundState: S,

@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { KEY_PREFIX } from './constants'
-import createKeyFilter from './keyFilter'
+import { KEY_PREFIX } from './constants.js'
+import createKeyFilter from './keyFilter.js'
 
-import type { Persistoid, PersistConfig } from './types'
-import { KeyAccessState } from './types'
+import type { Persistoid, PersistConfig } from './types.js'
+import { KeyAccessState } from './types.js'
 
 export default function createPersistoid(config: PersistConfig<any>): Persistoid {
   // defaults

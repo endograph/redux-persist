@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import getStoredStateV5 from '../getStoredState'
+import getStoredStateV5 from '../getStoredState.js'
 
-import type { KeyAccessState, PersistConfig, Storage, Transform } from '../types'
+import type { KeyAccessState, PersistConfig, Storage, Transform } from '../types.js'
 
 type V4Config = {
   storage?: Storage,

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { DEFAULT_VERSION } from './constants'
+import { DEFAULT_VERSION } from './constants.js'
 
-import type { PersistedState, MigrationManifest } from './types'
+import type { PersistedState, MigrationManifest } from './types.js'
 
 export default function createMigrate(
   migrations: MigrationManifest,
