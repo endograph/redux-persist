@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { KEY_PREFIX } from './constants.js'
+import { DEFAULT_TIMEOUT, KEY_PREFIX } from './constants.js'
 import createKeyFilter from './keyFilter.js'
 
 import type { Persistoid, PersistConfig } from './types.js'
@@ -30,11 +30,29 @@ export default function createPersistoid(
   }
   const writeFailHandler = config.writeFailHandler || null
 
+  const timeout = config.timeout !== undefined ? config.timeout : DEFAULT_TIMEOUT
+
   // initialize stateful values
-  let waitFor: Promise<any> | null = previousWrite || null
-  if (waitFor) {
-    const done = () => { waitFor = null }
-    waitFor.then(done, done)
+  let waitFor: Promise<any> | null = null
+  if (previousWrite) {
+    // Wait at most `timeout` (0: forever): a storage write that never settles
+    // must not block this writer and every later flush for good.
+    let timer: ReturnType<typeof setTimeout> | undefined
+    waitFor = new Promise<void>(resolve => {
+      const settled = () => resolve()
+      previousWrite.then(settled, settled)
+      if (timeout)
+        timer = setTimeout(() => {
+          if (process.env.NODE_ENV !== 'production')
+            console.warn(
+              `redux-persist: the previous write for "${config.key}" did not finish within ${timeout}ms; writing without waiting for it.`
+            )
+          resolve()
+        }, timeout)
+    }).then(() => {
+      clearTimeout(timer)
+      waitFor = null
+    })
   }
   let lastState: KeyAccessState = {}
   const stagedState: KeyAccessState = {}

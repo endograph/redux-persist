@@ -201,3 +201,30 @@ for (const replacements of [1, 2]) {
     t.is(childValue(storage.data['persist:root']), replacements)
   })
 }
+
+test('replacing the reducer: an inherited write that never settles only delays writes by `timeout`', async t => {
+  const data: Record<string, any> = {}
+  let hang = false
+  const storage = {
+    getItem: (key: string) => Promise.resolve(data[key]),
+    setItem: (key: string, value: any) => {
+      if (hang) return new Promise<void>(() => {}) // never settles
+      data[key] = value
+      return Promise.resolve()
+    },
+    removeItem: (key: string) => { delete data[key]; return Promise.resolve() },
+  }
+  const config = { key: 'root', storage, throttle: 100, timeout: 50 }
+  const store = createStore(persistReducer(config, counter))
+  const persistor = await bootstrap(store)
+
+  store.dispatch({ type: 'SET_CHILD', value: 1 })
+  hang = true
+  store.replaceReducer(persistReducer(config, counter)) // flushes 1 into a write that hangs
+  hang = false
+  store.dispatch({ type: 'SET_CHILD', value: 2 })
+  const started = Date.now()
+  await persistor.flush()
+  t.true(Date.now() - started >= 40, 'waited for the timeout')
+  t.is(childValue(data['persist:root']), 2)
+})
