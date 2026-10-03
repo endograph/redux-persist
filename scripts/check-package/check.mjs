@@ -88,8 +88,30 @@ for (const mode of tsModes) {
   }
 }
 
+// The oldest supported React line: Node's ESM loader can't see named exports
+// of React's CommonJS build before 16.13, so redux-persist/react has to load
+// with it too (the checks above use the repo's current React).
+const reactLink = join(project, 'node_modules', 'react')
+rmSync(reactLink)
+symlinkSync(join(root, 'node_modules', 'react-16'), reactLink, 'dir')
+const reactPaths = all.filter(spec => /\/react$|integration\/react(\.js)?$/.test(spec))
+for (const spec of reactPaths) {
+  try { requireFromProject(spec) } catch (e) { failures.push(`${spec} [react 16.8 require] ${e.message.split('\n')[0]}`) }
+}
+writeFileSync(join(project, 'import-react16.mjs'), `
+const failed = []
+for (const spec of ${JSON.stringify(reactPaths)}) {
+  try {
+    const m = await import(spec)
+    if (typeof m.PersistGate !== 'function' || typeof m.useRehydrated !== 'function') throw new Error('missing exports')
+  } catch (e) { failed.push(spec + ' [react 16.8 import] ' + e.message.split('\\n')[0]) }
+}
+console.log(JSON.stringify(failed))
+`)
+failures.push(...JSON.parse(execFileSync(process.execPath, ['import-react16.mjs'], { cwd: project }).toString().trim().split('\n').pop()))
+
 rmSync(work, { recursive: true, force: true })
-console.log(`checked ${all.length} import paths with node require, node import, esbuild and 4 TypeScript resolution modes`)
+console.log(`checked ${all.length} import paths with node require, node import, esbuild and 4 TypeScript resolution modes, and the React entry points with React 16.8`)
 if (failures.length) {
   console.error(`${failures.length} failures:\n  ${failures.join('\n  ')}`)
   process.exit(1)

@@ -1,5 +1,10 @@
-import { PureComponent, useEffect, useState } from 'react'
+import * as ReactModule from 'react'
 import type { ReactNode } from 'react'
+
+// Node's native ESM loader can't see the named exports of React's CommonJS
+// build before 16.13, but the module's default export is the whole module.
+const React: typeof ReactModule =
+  (ReactModule as unknown as { default?: typeof ReactModule }).default || ReactModule
 import type { Persistor } from '../types.js'
 
 /**
@@ -10,9 +15,9 @@ export function useRehydrated(persistor: Persistor): boolean {
   // Read from the current persistor on every render, so switching persistors
   // never reports the previous one's status; state only triggers re-renders.
   const bootstrapped = persistor.getState().bootstrapped
-  const [, setSeen] = useState(bootstrapped)
+  const [, setSeen] = React.useState(bootstrapped)
 
-  useEffect(() => {
+  React.useEffect(() => {
     const update = () => setSeen(persistor.getState().bootstrapped)
     const unsubscribe = persistor.subscribe(update)
     // it may have bootstrapped between rendering and subscribing
@@ -44,7 +49,7 @@ type State = {
 // PersistGate stays a class component: its generated types are accepted as a
 // JSX component even when an app ends up with two copies of @types/react
 // (#1375), which a function component's return type isn't.
-export class PersistGate extends PureComponent<PersistGateProps, State> {
+export class PersistGate extends React.PureComponent<PersistGateProps, State> {
   static defaultProps = {
     children: null,
     loading: null,
