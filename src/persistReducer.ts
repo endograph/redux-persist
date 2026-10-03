@@ -8,20 +8,20 @@ import {
   PURGE,
   REHYDRATE,
   DEFAULT_VERSION,
-} from './constants'
+} from './constants.js'
 
 import type {
   PersistConfig,
   PersistPartial,
   Persistoid,
   StateReconciler,
-} from './types'
+} from './types.js'
 
-import autoMergeLevel1 from './stateReconciler/autoMergeLevel1'
-import createPersistoid from './createPersistoid'
-import { getHandle } from './persistorHandle'
-import defaultGetStoredState from './getStoredState'
-import purgeStoredState from './purgeStoredState'
+import autoMergeLevel1 from './stateReconciler/autoMergeLevel1.js'
+import createPersistoid from './createPersistoid.js'
+import { getHandle } from './persistorHandle.js'
+import defaultGetStoredState from './getStoredState.js'
+import purgeStoredState from './purgeStoredState.js'
 
 const DEFAULT_TIMEOUT = 5000
 /*

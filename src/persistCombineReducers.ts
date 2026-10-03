@@ -5,13 +5,13 @@ import type {
   Reducer,
   StateFromReducersMapObject,
 } from 'redux'
-import persistReducer from './persistReducer'
-import autoMergeLevel2 from './stateReconciler/autoMergeLevel2'
+import persistReducer from './persistReducer.js'
+import autoMergeLevel2 from './stateReconciler/autoMergeLevel2.js'
 
 import type {
   PersistConfig,
   PersistPartial,
-} from './types'
+} from './types.js'
 
 // combineReducers + persistReducer with stateReconciler defaulted to autoMergeLevel2
 export default function persistCombineReducers<M>(

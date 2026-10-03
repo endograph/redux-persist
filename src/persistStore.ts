@@ -3,11 +3,11 @@ import type {
   Persistor,
   PersistorOptions,
   PersistorState,
-} from './types'
+} from './types.js'
 
 import { AnyAction, createStore, Store } from 'redux'
-import { FLUSH, PAUSE, PERSIST, PURGE, REGISTER, REHYDRATE } from './constants'
-import { attachHandle } from './persistorHandle'
+import { FLUSH, PAUSE, PERSIST, PURGE, REGISTER, REHYDRATE } from './constants.js'
+import { attachHandle } from './persistorHandle.js'
 
 type BoostrappedCb = () => any;
 

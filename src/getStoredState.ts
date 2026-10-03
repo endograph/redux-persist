@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { KeyAccessState, PersistConfig } from './types'
+import type { KeyAccessState, PersistConfig } from './types.js'
 
-import { KEY_PREFIX } from './constants'
+import { KEY_PREFIX } from './constants.js'
 
 export default function getStoredState(
   config: PersistConfig<any>

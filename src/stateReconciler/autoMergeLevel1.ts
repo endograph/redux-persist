@@ -4,8 +4,8 @@
     - skips substate if already modified
 */
 
-import type { PersistConfig } from '../types'
-import { KeyAccessState } from '../types'
+import type { PersistConfig } from '../types.js'
+import { KeyAccessState } from '../types.js'
 
 export default function autoMergeLevel1<S extends KeyAccessState>(
   inboundState: S,

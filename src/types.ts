@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { REHYDRATE, REGISTER } from './constants'
+import { REHYDRATE, REGISTER } from './constants.js'
 
 import { StoreEnhancer } from "redux";
 

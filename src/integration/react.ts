@@ -1,6 +1,6 @@
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import React, { PureComponent, ReactNode } from 'react'
-import type { Persistor } from '../types'
+import type { Persistor } from '../types.js'
 
 type Props = {
   onBeforeLift?: () => void,

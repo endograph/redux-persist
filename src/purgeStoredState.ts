@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { PersistConfig } from './types'
+import type { PersistConfig } from './types.js'
 
-import { KEY_PREFIX } from './constants'
+import { KEY_PREFIX } from './constants.js'
 
 export default function purgeStoredState(config: PersistConfig<any>):any {
   const storage = config.storage

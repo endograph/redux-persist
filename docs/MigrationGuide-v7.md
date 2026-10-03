@@ -33,6 +33,23 @@ check passes without configuration. Remove the `ignoredActions` setup:
 
 Leaving it in place is harmless.
 
+## Shorter import paths
+
+v7 adds an `exports` map with ES module and CommonJS builds, and shorter paths:
+
+| v7 | Still works |
+|---|---|
+| `redux-persist/storage` | `redux-persist/lib/storage` |
+| `redux-persist/storage/session` | `redux-persist/lib/storage/session` |
+| `redux-persist/storage/createWebStorage` | `redux-persist/lib/storage/createWebStorage` |
+| `redux-persist/react` | `redux-persist/integration/react` |
+| `redux-persist/stateReconciler/autoMergeLevel2` | `redux-persist/lib/stateReconciler/autoMergeLevel2` |
+
+Every `redux-persist/lib/...` and `redux-persist/es/...` path from v6 keeps
+working. In native Node ES modules (not through a bundler), prefer the short
+paths: `import storage from 'redux-persist/lib/storage'` there gives you the
+CommonJS module, with the storage at `.default`, as in v6.
+
 ## Server rendering (Next.js and others)
 
 `redux-persist/lib/storage` and `redux-persist/lib/storage/session` now work on
