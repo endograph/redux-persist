@@ -30,7 +30,7 @@ test('does not throw when serializing the whole state fails', async t => {
   const { update, flush } = createPersistoid({
     key: 'serialize-test',
     storage: createMemoryStorage(),
-    serialize: serialize as any, // PersistConfig types serialize as boolean only
+    serialize,
     writeFailHandler: () => {},
   })
   update({ a: 1 })
@@ -45,7 +45,7 @@ test('passes the serialize error to writeFailHandler and skips the write', async
   const { update, flush } = createPersistoid({
     key: 'serialize-test',
     storage,
-    serialize: serialize as any, // PersistConfig types serialize as boolean only
+    serialize,
     writeFailHandler: err => errors.push(err),
   })
   update({ a: 1 })
@@ -61,7 +61,7 @@ test('leaves previously stored state intact when serializing fails', async t => 
   const { update, flush } = createPersistoid({
     key: 'serialize-test',
     storage,
-    serialize: serialize as any, // PersistConfig types serialize as boolean only
+    serialize,
     writeFailHandler: () => {},
   })
   update({ a: 1 })
