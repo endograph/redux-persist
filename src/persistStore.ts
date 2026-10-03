@@ -23,7 +23,8 @@ const persistorReducer = (state = initialState, action: AnyAction) => {
     case REGISTER:
       return { ...state, registry: [...state.registry, action.key] }
     case REHYDRATE:
-      registry.splice(firstIndex, 1)
+      // a key can rehydrate again after a timeout; it's no longer registered then
+      if (firstIndex !== -1) registry.splice(firstIndex, 1)
       return { ...state, registry, bootstrapped: registry.length === 0 }
     default:
       return state

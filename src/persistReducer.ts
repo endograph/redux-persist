@@ -59,11 +59,18 @@ export default function persistReducer<S, A extends Action, P = S>(
   let _persistoid: Persistoid | null = null
   let _purge = false
   let _paused = true
+  // Set when the stored state couldn't be read (storage error, unparseable
+  // data, failed migration or timeout). Writing then would replace the user's
+  // stored data with initial state (#809), so writes stay off until the stored
+  // state is read or purged.
+  let _readFailed = false
   const conditionalUpdate = (state: any) => {
-    // update the persistoid only if we are rehydrated and not paused
+    // update the persistoid only if we are rehydrated, not paused, and the
+    // stored state was read
     state._persist.rehydrated &&
       _persistoid &&
       !_paused &&
+      !_readFailed &&
       _persistoid.update(state)
     return state
   }
@@ -85,27 +92,37 @@ export default function persistReducer<S, A extends Action, P = S>(
       }
       const { register, rehydrate } = handle
       let _sealed = false
+      let _timedOut = false
       let timer: ReturnType<typeof setTimeout> | undefined
       const _rehydrate = (payload: any, err?: Error) => {
-        // dev warning if we are already sealed
-        if (process.env.NODE_ENV !== 'production' && _sealed)
-          console.error(
-            `redux-persist: rehydrate for "${
-              config.key
-            }" called after timeout.`,
-            payload,
-            err
-          )
-
-        // only rehydrate if we are not already sealed
-        if (!_sealed) {
-          rehydrate(config.key, payload, err)
-          _sealed = true
-          clearTimeout(timer)
+        if (_sealed) {
+          // The read finished after the timeout: apply the stored state now
+          // and resume writing. If it failed, writes stay off.
+          if (_timedOut && !err) {
+            _readFailed = false
+            rehydrate(config.key, payload)
+          }
+          return
         }
+
+        if (err) {
+          _readFailed = true
+          if (process.env.NODE_ENV !== 'production')
+            console.error(
+              _timedOut
+                ? `redux-persist: reading stored state for "${config.key}" timed out. Writes are paused until the read finishes, then the stored state is applied.`
+                : `redux-persist: could not read stored state for "${config.key}". Writes are paused so the stored data isn't overwritten; call persistor.purge() to discard it.`,
+              err
+            )
+        }
+
+        rehydrate(config.key, payload, err)
+        _sealed = true
+        clearTimeout(timer)
       }
       if (timeout) {
         timer = setTimeout(() => {
+          _timedOut = true
           !_sealed &&
             _rehydrate(
               undefined,
@@ -172,6 +189,8 @@ export default function persistReducer<S, A extends Action, P = S>(
       const handle = getHandle(action)
       if (handle && handle.result) {
         _purge = true
+        // stored data is gone, so there is nothing left to protect
+        _readFailed = false
         handle.result(purgeStoredState(config))
       }
       return {
