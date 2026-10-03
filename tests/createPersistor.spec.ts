@@ -2,30 +2,24 @@ import test from 'ava'
 import sinon from 'sinon'
 import createMemoryStorage from './utils/createMemoryStorage'
 import createPersistoid from '../src/createPersistoid'
-const memoryStorage = createMemoryStorage()
-
-const config = {
-  key: 'persist-reducer-test',
-  version: 1,
-  storage: memoryStorage,
-  debug: true
-}
-
+let config: { key: string, version: number, storage: ReturnType<typeof createMemoryStorage>, debug: boolean }
 let spy: sinon.SinonSpy;
 let clock: sinon.SinonFakeTimers;
 
+// Serial with a fresh storage per test: these spy on setItem and fake timers.
 test.beforeEach(() => {
+    const memoryStorage = createMemoryStorage()
+    config = { key: 'persist-reducer-test', version: 1, storage: memoryStorage, debug: true }
     spy = sinon.spy(memoryStorage, 'setItem')
     clock = sinon.useFakeTimers()
 });
 
-test.afterEach(() => {
+test.afterEach.always(() => {
     spy.restore()
     clock.restore()
 });
 
-// @NOTE these tests broke when updating sinon
-test.skip('it updates changed state', t => {
+test.serial('it updates changed state', t => {
     const { update } = createPersistoid(config)
     update({ a: 1 })
     clock.tick(1);
@@ -36,7 +30,7 @@ test.skip('it updates changed state', t => {
     t.true(spy.withArgs('persist:persist-reducer-test', '{"a":"2"}').calledOnce);
 })
 
-test.skip('it does not update unchanged state', t => {
+test.serial('it does not update unchanged state', t => {
     const { update } = createPersistoid(config)
     update({ a: undefined, b: 1 })
     clock.tick(1);
@@ -47,7 +41,7 @@ test.skip('it does not update unchanged state', t => {
     t.true(spy.withArgs('persist:persist-reducer-test', '{"b":"1"}').calledOnce);
 })
 
-test.skip('it updates removed keys', t => {
+test.serial('it updates removed keys', t => {
     const { update } = createPersistoid(config)
     update({ a: undefined, b: 1 })
     clock.tick(1);
