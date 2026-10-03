@@ -1,7 +1,8 @@
 # Migrating to v7
 
-v7 is in development on `master`. The latest release is still v6, and the v6
-line is maintained on the `v6` branch. This guide is updated as v7 changes land.
+v7 is in development on `master`; the latest release is still v6.0.0. Fixes
+made since 6.0.0 ship in v7 rather than in a v6 release. This guide is updated
+as v7 changes land.
 
 ## Requirements
 
