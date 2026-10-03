@@ -33,6 +33,32 @@ check passes without configuration. Remove the `ignoredActions` setup:
 
 Leaving it in place is harmless.
 
+## Server rendering (Next.js and others)
+
+`redux-persist/lib/storage` and `redux-persist/lib/storage/session` now work on
+the server without the "failed to create sync storage" error (#1208, #1464).
+Without a browser `window` they store nothing, silently, and stored state is
+loaded in the browser as usual. You can remove the common workaround:
+
+```diff
+-import createWebStorage from 'redux-persist/lib/storage/createWebStorage'
+-
+-const createNoopStorage = () => ({
+-  getItem: () => Promise.resolve(null),
+-  setItem: (_key, value) => Promise.resolve(value),
+-  removeItem: () => Promise.resolve(),
+-})
+-
+-const storage = typeof window === 'undefined' ? createNoopStorage() : createWebStorage('local')
++import storage from 'redux-persist/lib/storage'
+```
+
+On the server, a global `localStorage` (Node 25+) is never used, since it
+would be shared by every request. In the browser, if storage is blocked (for
+example by privacy settings) a warning is logged in development and state
+isn't persisted, as before. Storage is now looked up on first use rather than
+when the module is imported.
+
 ## `allowlist` and `denylist`
 
 `whitelist` and `blacklist` are now `allowlist` and `denylist`. The old names
