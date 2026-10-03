@@ -16,6 +16,7 @@ import type {
   PersistConfig,
   PersistState,
   Persistoid,
+  StateReconciler,
 } from './types'
 
 import autoMergeLevel1 from './stateReconciler/autoMergeLevel1'
@@ -45,7 +46,7 @@ export default function persistReducer<S, A extends Action>(
 
   const version =
     config.version !== undefined ? config.version : DEFAULT_VERSION
-  const stateReconciler =
+  const stateReconciler: false | StateReconciler<S> =
     config.stateReconciler === undefined
       ? autoMergeLevel1
       : config.stateReconciler

@@ -1,6 +1,5 @@
 import type { Storage } from '../types'
 
-// eslint-disable-next-line @typescript-eslint/no-empty-function
 function noop() {}
 const noopStorage = {
   getItem: noop,

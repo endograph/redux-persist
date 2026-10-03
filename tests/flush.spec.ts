@@ -36,7 +36,7 @@ const config = {
 }
 
 test('state before flush is not updated, after flush is', t => {
-  return new Promise((resolve) => {
+  return new Promise<void>((resolve) => {
     const rootReducer = persistReducer(config, reducer)
     const store = createStore(rootReducer)
     const persistor = persistStore(store, {}, async () => {
@@ -46,7 +46,8 @@ test('state before flush is not updated, after flush is', t => {
       t.not(storedPreFlush && storedPreFlush.c, state.c)
       await persistor.flush()
       const storedPostFlush = await getStoredState(config)
-      resolve(t.is(storedPostFlush && storedPostFlush.c, state.c))
+      t.is(storedPostFlush && storedPostFlush.c, state.c)
+      resolve()
     })
   })
 })
