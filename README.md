@@ -3,64 +3,9 @@ Persist and rehydrate a redux store.
 
 [![build status](https://img.shields.io/travis/rt2zz/redux-persist/master.svg?style=flat-square)](https://travis-ci.org/rt2zz/redux-persist) [![npm version](https://img.shields.io/npm/v/redux-persist.svg?style=flat-square)](https://www.npmjs.com/package/redux-persist) [![npm downloads](https://img.shields.io/npm/dm/redux-persist.svg?style=flat-square)](https://www.npmjs.com/package/redux-persist)
 
-## October 15th, 2021 - Move to TypeScript (Thanks [@smellman](https://github.com/smellman))
+## October 2nd, 2026 - We're back!
 
-As part of the work to upgrade the infrastructure used to build redux-persist, we're moving from Flow to TypeScript.
-
-- Move from Flow to TypeScript
-- Move from TravisCI to GitHub Actions ([.github/workflows/ci.yml](.github/workflows/ci.yml))
-- Version updates for some dependencies
-
-## September 22nd, 2021 - Under New Management
-
-Redux Persist is a staple project for Redux developers, both on mobile and on the web. If you're here, it's likely because you need it now or have used it before and need to debug something, and like me have possibly struggled with making it work (especially with newer versions of things) and making it work with _your_ code because the examples you'll find around the internet are inconsistent.
-
-I ([@ckalika](https://github.com/ckalika)) spoke with [@rt2zz](https://github.com/rt2zz) about taking over maintenance of the project, and we agreed to give it a shot and see how we go. My priorities are as follows:
-
-1. Go through and triage the existing issues
-    - Separate them into bugs, feature requests, basic questions/requests for code samples, and issues that are either not project-specific or don't fall within the remit of the project (specific definitions and criteria will be posted in the future)
-    - Determine the severity/urgency of each bug or feature request
-    - Guestimate the size of them
-    - Determine which are actionable immediately or in the short term
-    - Establish some semblance of test criteria for each
-
-
-2. Upgrade dependencies (where possible) so that we've got something building with modern versions
-    * Note:  Right now, it's about modernising the project infrastructure and build process without making breaking API changes
-
-
-3. Go through the existing pull requests
-    - Merge the ones that deal with documentation, code samples, etc.
-    - Review and merge the ones that deal with open issues
-    - Review and merge the ones that will require breaking changes and consult authors about `redux-persist@v7` (feature set and requirements to be defined)
-
-
-4. Update the documentation
-    - Split it out for both web and mobile
-    - Providing code samples and test coverage for how to use the library
-    - Provide or link to working examples that integrate with additional libraries (e.g. [RTK Query](https://redux-toolkit.js.org/rtk-query/overview)).
-
-
-5. Improve testing and automation
-    - [x] Move to GitHub Actions
-    - [ ] Move from Ava to Jest
-
-There's a lot to do here, so I'll ask your patience and understanding as I work through it. If you have ideas for how to improve the library, the documentation, or the community, I'd love to hear them, and if you're submitting pull requests (or have submitted some previously), please reach out and help me understand what you're aiming to do with it.
-
-I'll try to get some discussions up to pull together ideas, so we can properly work out what the next version is likely to look like.
-
-
-## v6 upgrade
-**Web**: no breaking changes
-**React Native**: Users must now explicitly pass their storage engine in. e.g.
-```js
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
-const persistConfig = {
-  //...
-  storage: AsyncStorage
-}
-```
+Hey all! Sorry for the silence. I am back and redux persist will be maintained again. Starting a triage pass now, there's a lot to cover 🫠 ([#1486](https://github.com/endograph/redux-persist/issues/1486))
 
 ## Quickstart
 `npm install redux-persist`
