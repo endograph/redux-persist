@@ -48,7 +48,7 @@ export interface PersistConfig<S, RS = any, HSS = any, ESS = any> {
    */
   getStoredState?: (config: PersistConfig<S, RS, HSS, ESS>) => Promise<PersistedState>;
   debug?: boolean;
-  serialize?: boolean;
+  serialize?: boolean | ((data: any) => any);
   deserialize?: boolean | ((x: any) => any);
   timeout?: number;
   writeFailHandler?: (err: Error) => void;
