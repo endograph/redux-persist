@@ -108,6 +108,7 @@ export default function persistReducer<S, A extends Action = UnknownAction, P = 
     config.timeout !== undefined ? config.timeout : DEFAULT_TIMEOUT
   // identifies this persistReducer instance (see adoptStore)
   const owner = {}
+  let warnedNonObjectState = false
   const conditionalUpdate = (state: any) => {
     // update the persistoid only if we are rehydrated, not paused, and the
     // stored state was read
@@ -144,6 +145,20 @@ export default function persistReducer<S, A extends Action = UnknownAction, P = 
     const store = adoptStore(storeFor(_persist))
 
     if (action.type === PERSIST) {
+      // persistReducer adds a `_persist` key, so it needs object state; an
+      // array or primitive would be spread into a plain object (#215)
+      if (
+        process.env.NODE_ENV !== 'production' &&
+        !warnedNonObjectState &&
+        (state === null || Array.isArray(state) || (state !== undefined && typeof state !== 'object'))
+      ) {
+        warnedNonObjectState = true
+        console.error(
+          `redux-persist: persistReducer for "${config.key}" needs its reducer's state to be a plain object, but it is ${
+            Array.isArray(state) ? 'an array' : state === null ? 'null' : `a ${typeof state}`
+          }. It would be turned into an object. Wrap it in an object (for example { items: [] }) or persist the parent reducer instead.`
+        )
+      }
       const handle = getHandle(action)
       // A PERSIST without a handle wasn't dispatched by persistStore (for example a
       // devtools replay), so there is nobody to register with or rehydrate.
