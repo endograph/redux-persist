@@ -117,6 +117,11 @@ logged in development.
 - **`onBeforeLift`** runs once even in StrictMode, and if it throws or rejects
   the gate still lifts and the error is logged in development, instead of
   becoming an unhandled promise rejection.
+- **Next.js App Router:** rendering `PersistGate` or `useRehydrated` from a
+  Server Component now fails with an error saying they need a Client
+  Component, instead of "Class extends value undefined" / "Super expression
+  must either be null or a function". See
+  [PersistGate](PersistGate.md#nextjs-app-router-react-server-components).
 - **"'PersistGate' cannot be used as a JSX component"** (#1375): v7's types
   are accepted even when a project ends up with two copies of `@types/react`,
   so the `resolutions`/`overrides` workaround is no longer needed for

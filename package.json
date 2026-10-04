@@ -48,6 +48,10 @@
       }
     },
     "./react": {
+      "react-server": {
+        "types": "./es/integration/react.d.ts",
+        "default": "./es/integration/react.server.js"
+      },
       "import": {
         "types": "./es/integration/react.d.ts",
         "default": "./es/integration/react.js"
@@ -58,6 +62,10 @@
       }
     },
     "./integration/react": {
+      "react-server": {
+        "types": "./es/integration/react.d.ts",
+        "default": "./es/integration/react.server.js"
+      },
       "import": {
         "types": "./es/integration/react.d.ts",
         "default": "./es/integration/react.js"
