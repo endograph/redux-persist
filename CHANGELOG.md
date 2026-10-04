@@ -42,6 +42,9 @@ and v7 writes the same format. See the [migration guide](docs/MigrationGuide-v7.
 - A store with preloaded `_persist` (server-rendered state) never bootstrapping
 - "Class extends value undefined" / "Super expression must either be null or a function" when `PersistGate` is rendered from a React Server Component: it now explains that it needs a Client Component (#796, #1442)
 - Writes stopping after a transform throws, or after hot reloading the reducer
+- A reducer throwing while handling `REHYDRATE` left the app unbootstrapped and fired a misleading timeout (#719)
+- Type errors when passing `stateReconciler: hardSet` / `autoMergeLevel1` / `autoMergeLevel2` inline (#1368)
+- Array or primitive state passed to `persistReducer` was silently turned into an object; now reported in development (#215)
 
 ## [6.1.0] - 2021-10-17 (never published)
 Thanks to [@smellman](https://github.com/smellman) for the TypeScript updates.
