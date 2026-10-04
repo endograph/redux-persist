@@ -79,8 +79,13 @@ function keepNestedPersist(reconciled: any, current: any): any {
   - persisting a reducer which has nested _persist
   - handling actions that fire before reydrate is called
 */
+// Blocks inference from the config, so the state type comes from the reducer
+// alone: a generic reconciler like `stateReconciler: hardSet` would otherwise
+// pull it to unknown (#1368). Works on TypeScript versions before NoInfer.
+type FromReducerOnly<T> = [T][T extends any ? 0 : never]
+
 export default function persistReducer<S, A extends Action = UnknownAction, P = S>(
-  config: PersistConfig<S>,
+  config: PersistConfig<FromReducerOnly<S>>,
   baseReducer: Reducer<S, A, P>
 ): Reducer<S & PersistPartial, A, P & Partial<PersistPartial>> {
   if (process.env.NODE_ENV !== 'production') {
@@ -176,13 +181,28 @@ export default function persistReducer<S, A extends Action = UnknownAction, P = 
       let _sealed = false
       let _timedOut = false
       let timer: ReturnType<typeof setTimeout> | undefined
+      // Dispatches REHYDRATE. If a reducer throws while handling it, the stored
+      // state wasn't applied: keep writes off so it isn't overwritten, and
+      // report the error instead of letting it escape the storage promise (#719).
+      const dispatchRehydrate = (payload: any, err?: Error) => {
+        try {
+          rehydrate(config.key, payload, err)
+        } catch (reducerError) {
+          persisted.readFailed = true
+          if (process.env.NODE_ENV !== 'production')
+            console.error(
+              `redux-persist: a reducer threw while handling REHYDRATE for "${config.key}". The stored state was not applied, and writes are paused so it isn't overwritten.`,
+              reducerError
+            )
+        }
+      }
       const _rehydrate = (payload: any, err?: Error) => {
         if (_sealed) {
           // The read finished after the timeout: apply the stored state now
           // and resume writing. If it failed, writes stay off.
           if (_timedOut && !err) {
             persisted.readFailed = false
-            rehydrate(config.key, payload)
+            dispatchRehydrate(payload)
           }
           return
         }
@@ -198,9 +218,10 @@ export default function persistReducer<S, A extends Action = UnknownAction, P = 
             )
         }
 
-        rehydrate(config.key, payload, err)
+        // seal first, so a throwing reducer can't leave the timeout armed
         _sealed = true
         clearTimeout(timer)
+        dispatchRehydrate(payload, err)
       }
       if (timeout) {
         timer = setTimeout(() => {

@@ -89,6 +89,23 @@ for (const mode of tsModes) {
   }
 }
 
+// React Server Components resolve the "react-server" condition and must get
+// the stub that explains PersistGate/useRehydrated need a Client Component.
+writeFileSync(join(project, 'import-react-server.mjs'), `
+const failed = []
+for (const spec of ['redux-persist/react', 'redux-persist/integration/react']) {
+  try {
+    const { PersistGate } = await import(spec)
+    PersistGate({})
+    failed.push(spec + ' [react-server] did not throw')
+  } catch (e) {
+    if (!/can only be used in a Client Component/.test(e.message)) failed.push(spec + ' [react-server] ' + e.message.split('\\n')[0])
+  }
+}
+console.log(JSON.stringify(failed))
+`)
+failures.push(...JSON.parse(execFileSync(process.execPath, ['--conditions=react-server', 'import-react-server.mjs'], { cwd: project }).toString().trim().split('\n').pop()))
+
 // The oldest supported React line: Node's ESM loader can't see named exports
 // of React's CommonJS build before 16.13, so redux-persist/react has to load
 // with it too (the checks above use the repo's current React).
@@ -112,7 +129,7 @@ console.log(JSON.stringify(failed))
 failures.push(...JSON.parse(execFileSync(process.execPath, ['import-react16.mjs'], { cwd: project }).toString().trim().split('\n').pop()))
 
 rmSync(work, { recursive: true, force: true })
-console.log(`checked ${all.length} import paths with node require, node import, esbuild and 4 TypeScript resolution modes, and the React entry points with React 16.8`)
+console.log(`checked ${all.length} import paths with node require, node import, esbuild and 4 TypeScript resolution modes, the React entry points with React 16.8, and the react-server condition`)
 if (failures.length) {
   console.error(`${failures.length} failures:\n  ${failures.join('\n  ')}`)
   process.exit(1)

@@ -47,3 +47,41 @@ const Header = () => {
   return rehydrated ? <UserMenu /> : <Spinner />
 }
 ```
+
+## Next.js App Router (React Server Components)
+`PersistGate`, `useRehydrated` and react-redux's `Provider` need state and effects, so they have to render from a Client Component. Layouts and pages in the App Router are Server Components by default, so put the providers in their own file that starts with `'use client'`:
+
+```tsx
+// app/providers.tsx
+'use client'
+import { Provider } from 'react-redux'
+import { PersistGate } from 'redux-persist/react'
+import { store, persistor } from '../lib/store'
+
+export default function Providers({ children }: { children: React.ReactNode }) {
+  return (
+    <Provider store={store}>
+      <PersistGate loading={null} persistor={persistor}>
+        {children}
+      </PersistGate>
+    </Provider>
+  )
+}
+```
+
+```tsx
+// app/layout.tsx (a Server Component)
+import Providers from './providers'
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html>
+      <body>
+        <Providers>{children}</Providers>
+      </body>
+    </html>
+  )
+}
+```
+
+If `PersistGate` is rendered from a Server Component, it fails with an error saying it can only be used in a Client Component.

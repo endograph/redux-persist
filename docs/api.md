@@ -149,6 +149,8 @@ Provide a writeFailHandler(error) function to be notified if this occurs.
 #### When stored state can't be read
 If reading stored state fails (a storage error, data that can't be parsed, or a migration that throws), the app still starts: `REHYDRATE` is dispatched with `err` set and no payload. Writes for that key then stay off for the rest of the session, so the stored data isn't replaced with initial state. Call `persistor.purge()` to discard the unreadable data and resume writing, for example after inspecting `err` in a `REHYDRATE` handler.
 
+If one of your reducers throws while handling `REHYDRATE`, the app still starts, the stored state isn't applied, writes for that key stay off for the session so the stored data isn't overwritten, and the error is logged in development.
+
 If reading takes longer than `timeout`, the app starts the same way, with `err` describing the timeout, and writes stay off. When the read finishes, the stored state is applied with a second `REHYDRATE` and writes resume. The stored state replaces any changes made to the same keys in the meantime.
 
 ### `type MigrationManifest`

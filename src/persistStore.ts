@@ -85,12 +85,16 @@ export default function persistStore(
       err: serializeError(err),
       key,
     }
-    // dispatch to `store` to rehydrate and `persistor` to track result
-    store.dispatch(rehydrateAction)
-    _pStore.dispatch(rehydrateAction)
-    if (typeof boostrappedCb === "function" && persistor.getState().bootstrapped) {
-      boostrappedCb()
-      boostrappedCb = false
+    // dispatch to `store` to rehydrate and `persistor` to track result; track
+    // it even if a reducer throws, so the app still bootstraps (#719)
+    try {
+      store.dispatch(rehydrateAction)
+    } finally {
+      _pStore.dispatch(rehydrateAction)
+      if (typeof boostrappedCb === "function" && persistor.getState().bootstrapped) {
+        boostrappedCb()
+        boostrappedCb = false
+      }
     }
   }
 

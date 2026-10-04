@@ -124,7 +124,9 @@ const persistConfig = {
 ### Server rendering
 
 `redux-persist/storage` works during server rendering (Next.js and others): on
-the server it stores nothing, and stored state is loaded in the browser.
+the server it stores nothing, and stored state is loaded in the browser. With
+the Next.js App Router, render `PersistGate` from a Client Component; see
+[PersistGate](docs/PersistGate.md#nextjs-app-router-react-server-components).
 
 ### Choosing what's saved
 
