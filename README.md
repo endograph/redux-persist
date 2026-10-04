@@ -145,6 +145,28 @@ work.
 
 To go deeper than one level, use [nested persists](docs/nested-persists.md).
 
+### Resetting state on logout
+
+Reset state inside the reducer you pass to `persistReducer`, so the reset
+state is saved too:
+
+```ts
+const rootReducer = (state, action) =>
+  appReducer(action.type === 'user/logout' ? undefined : state, action)
+
+const persistedReducer = persistReducer(persistConfig, rootReducer)
+```
+
+The reset state is saved like any other change. To write it right away (for
+example before the app might close), `await persistor.flush()` after
+dispatching the action.
+
+Don't reset above `persistReducer` (by wrapping the persisted reducer, or with
+a store enhancer that replaces the whole state): that removes the `_persist`
+key, so the state stops being saved, and the previous user's state is loaded
+again on the next launch. redux-persist logs an error in development when this
+happens.
+
 ## Learn more
 
 - [API](docs/api.md) — `persistReducer`, `persistStore`, the persistor, and config types

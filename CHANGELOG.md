@@ -19,6 +19,7 @@ and v7 writes the same format. See the [migration guide](docs/MigrationGuide-v7.
 - Root type exports (`PersistConfig`, `Persistor`, ...) restored; typed `persistReducer`, `persistCombineReducers` and `createTransform`
 - `persistor.flush()` guidance for saving before a tab closes or an app is backgrounded
 - `DEFAULT_TIMEOUT` is exported (#1060)
+- A development warning when state is reset above `persistReducer` (which stops saving), and docs for resetting state on logout (#659)
 
 ### Changed
 - Redux Toolkit works without `serializableCheck.ignoredActions`: actions no longer carry functions
