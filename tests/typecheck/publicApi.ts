@@ -19,6 +19,9 @@ import type {
   RehydrateAction,
   Transform,
 } from '../../src'
+import autoMergeLevel1 from '../../src/stateReconciler/autoMergeLevel1'
+import autoMergeLevel2 from '../../src/stateReconciler/autoMergeLevel2'
+import hardSet from '../../src/stateReconciler/hardSet'
 import createMemoryStorage from '../utils/createMemoryStorage'
 
 const storage = createMemoryStorage()
@@ -87,6 +90,16 @@ persistReducer(constConfig, rootReducer)
 persistReducer({ key: 'slice', storage, denylist: ['name'] }, user)
 persistCombineReducers({ key: 'combined-allow', storage, allowlist: ['settings'] }, { user, settings })
 
+// built-in reconcilers passed inline don't break state inference (#1368)
+const hardSetStore = configureStore({ reducer: persistReducer({ key: 'hard', storage, stateReconciler: hardSet }, rootReducer) })
+const hardSetName: string = hardSetStore.getState().user.name
+const level1Store = configureStore({ reducer: persistReducer({ key: 'level1', storage, stateReconciler: autoMergeLevel1 }, rootReducer) })
+const level1Name: string = level1Store.getState().user.name
+const level2Store = configureStore({ reducer: persistReducer({ key: 'level2', storage, stateReconciler: autoMergeLevel2 }, rootReducer) })
+const level2Name: string = level2Store.getState().user.name
+// @ts-expect-error state stays typed with a reconciler
+const reconcilerBadKey = level2Store.getState().notAKey
+
 // deprecated whitelist/blacklist still accept any strings, including a separately declared config
 const legacyConfig = { key: 'legacy', storage, whitelist: ['user'] }
 persistReducer(legacyConfig, rootReducer)
@@ -111,4 +124,4 @@ const combinedStore = configureStore({
 })
 const count: number = combinedStore.getState().counter
 
-export { name, badKey, persistor, theme, badCombinedKey, config, transform, rehydrate, rtkName, rtkBadKey, count }
+export { name, badKey, persistor, theme, badCombinedKey, config, transform, rehydrate, rtkName, rtkBadKey, count, hardSetName, level1Name, level2Name, reconcilerBadKey }
