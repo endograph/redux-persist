@@ -22,7 +22,7 @@ The v6 paths (`redux-persist/lib/...`, `redux-persist/es/...`,
       - required config: `key, storage`
       - notable other config: `allowlist, denylist, version, migrate, stateReconciler, throttle, debug`
     - **reducer** *function*
-      - any reducer will work, typically this would be the top level reducer returned by `combineReducers`
+      - any reducer whose state is a plain object, typically the top level reducer returned by `combineReducers`. persistReducer adds a `_persist` key to that object, so state that is an array or a primitive needs wrapping (for example `{ items: [] }`); in development this is reported as an error
   - returns an enhanced reducer
 
 ### `persistStore(store, [config, callback])`
