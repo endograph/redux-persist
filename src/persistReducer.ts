@@ -109,6 +109,9 @@ export default function persistReducer<S, A extends Action = UnknownAction, P = 
   // identifies this persistReducer instance (see adoptStore)
   const owner = {}
   let warnedNonObjectState = false
+  // development warning for state that lost its _persist key (#659)
+  let startedPersisting = false
+  let warnedLostPersist = false
   const conditionalUpdate = (state: any) => {
     // update the persistoid only if we are rehydrated, not paused, and the
     // stored state was read
@@ -259,6 +262,7 @@ export default function persistReducer<S, A extends Action = UnknownAction, P = 
       }
 
       register(config.key)
+      startedPersisting = true
 
       getStoredState(config).then(
         restoredState => {
@@ -339,7 +343,24 @@ export default function persistReducer<S, A extends Action = UnknownAction, P = 
     }
 
     // if we have not already handled PERSIST, straight passthrough
-    if (!_persist) return baseReducer(state, action)
+    if (!_persist) {
+      // State that this reducer persisted came back without _persist, so
+      // persistence can no longer tell which store it belongs to and stops
+      // saving it. Usually it was reset above persistReducer, e.g. on logout
+      // (#659). Redux's own actions are skipped: a new store starts this way.
+      if (
+        process.env.NODE_ENV !== 'production' &&
+        startedPersisting &&
+        !warnedLostPersist &&
+        !(typeof action.type === 'string' && action.type.startsWith('@@redux/'))
+      ) {
+        warnedLostPersist = true
+        console.error(
+          `redux-persist: state for "${config.key}" lost its _persist key, so it is no longer being saved and the previously stored state will be loaded on the next launch. This usually means the state was reset above persistReducer (for example on logout). Reset it inside the reducer you pass to persistReducer instead: https://github.com/endograph/redux-persist#resetting-state-on-logout`
+        )
+      }
+      return baseReducer(state, action)
+    }
 
     // run base reducer:
     // is state modified ? return original : return updated

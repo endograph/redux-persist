@@ -99,7 +99,7 @@ The Persistor is a redux store unto itself, plus
 1. the `purge()` method for clearing out stored state.
 2. the `flush()` method for flushing all pending state serialization and immediately write to disk
 
-`purge()` method only clear the content of the storage, leaving the internal data of `redux` untouched. To clean it instead, you can use the [redux-reset](https://github.com/wwayne/redux-reset) module.
+`purge()` only clears the stored data; the state in your store is unchanged. To reset the state too (for example on logout), see [Resetting state on logout](../README.md#resetting-state-on-logout).
 
 #### Saving before the app closes
 State changes are written asynchronously (after `throttle` ms, or on the next tick by default), so a change made right before a browser tab closes or a React Native app is backgrounded may not be saved. Call `flush()` from those events to write pending changes immediately:
