@@ -40,6 +40,7 @@ and v7 writes the same format. See the [migration guide](docs/MigrationGuide-v7.
 - "failed to create sync storage" during server rendering (#1208, #1464)
 - `PersistGate` flashing `loading` when already rehydrated (#1070), and "cannot be used as a JSX component" with two copies of `@types/react` (#1375)
 - A store with preloaded `_persist` (server-rendered state) never bootstrapping
+- "Class extends value undefined" / "Super expression must either be null or a function" when `PersistGate` is rendered from a React Server Component: it now explains that it needs a Client Component (#796, #1442)
 - Writes stopping after a transform throws, or after hot reloading the reducer
 
 ## [6.1.0] - 2021-10-17 (never published)
