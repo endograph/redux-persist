@@ -79,8 +79,13 @@ function keepNestedPersist(reconciled: any, current: any): any {
   - persisting a reducer which has nested _persist
   - handling actions that fire before reydrate is called
 */
+// Blocks inference from the config, so the state type comes from the reducer
+// alone: a generic reconciler like `stateReconciler: hardSet` would otherwise
+// pull it to unknown (#1368). Works on TypeScript versions before NoInfer.
+type FromReducerOnly<T> = [T][T extends any ? 0 : never]
+
 export default function persistReducer<S, A extends Action = UnknownAction, P = S>(
-  config: PersistConfig<S>,
+  config: PersistConfig<FromReducerOnly<S>>,
   baseReducer: Reducer<S, A, P>
 ): Reducer<S & PersistPartial, A, P & Partial<PersistPartial>> {
   if (process.env.NODE_ENV !== 'production') {
