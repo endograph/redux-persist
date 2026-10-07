@@ -183,6 +183,7 @@ happens.
 
 ## Contributing
 
-Issues and pull requests are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md),
-especially before changing anything that touches stored data. Feedback on the
-v7 beta goes in [#1486](https://github.com/endograph/redux-persist/issues/1486).
+Bug reports and pull requests are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md),
+especially before changing anything that touches stored data. Questions and
+feature ideas go in [Discussions](https://github.com/endograph/redux-persist/discussions).
+Feedback on the v7 beta goes in [#1486](https://github.com/endograph/redux-persist/issues/1486).

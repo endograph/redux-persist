@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions and help
+    url: https://github.com/endograph/redux-persist/discussions/categories/q-a
+    about: Ask how to do something with redux-persist
+  - name: Feature ideas
+    url: https://github.com/endograph/redux-persist/discussions/categories/ideas
+    about: Suggest a feature or a change

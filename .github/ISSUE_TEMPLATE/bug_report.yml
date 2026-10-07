@@ -1,0 +1,53 @@
+name: Bug report
+description: Something in redux-persist doesn't work as documented
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug! Questions and feature ideas go in [Discussions](https://github.com/endograph/redux-persist/discussions).
+  - type: input
+    id: version
+    attributes:
+      label: redux-persist version
+      placeholder: "7.0.0"
+    validations:
+      required: true
+  - type: checkboxes
+    id: latest
+    attributes:
+      label: Latest version
+      options:
+        - label: It happens with the latest version (during the v7 beta, `npm install redux-persist@next`)
+          required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Where does it happen?
+      multiple: true
+      options:
+        - Browser
+        - React Native
+        - Expo
+        - Server rendering (Next.js or other)
+        - Node
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: storage
+    attributes:
+      label: Storage engine
+      placeholder: redux-persist/storage, AsyncStorage, ...
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: How to reproduce
+      description: Your persist config and store setup, or a link to a small project or sandbox that shows the problem.
+    validations:
+      required: true
