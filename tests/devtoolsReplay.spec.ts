@@ -7,7 +7,7 @@ import test from 'ava'
 import { combineReducers } from 'redux'
 import type { Reducer } from 'redux'
 
-import { persistReducer, persistStore } from '../src'
+import { createMigrate, persistReducer, persistStore } from '../src'
 import sleep from './utils/sleep'
 
 // Like @redux-devtools/instrument: keeps every dispatched action, and
@@ -30,7 +30,8 @@ function createDevtoolsStore(reducer: Reducer<any, any>) {
       current = next
       state = recompute()
     },
-    // what toggling an action does, with the same reducer
+    // a full recompute with the same reducer (toggling an action recomputes
+    // from that action on, which is the same for actions after it)
     recompute: () => {
       state = recompute()
     },
@@ -149,17 +150,21 @@ test('a replay does not read nested persisted reducers again', async t => {
   t.is(storedValue(storage, 'persist:auth', 'lastAccess'), 'new')
 })
 
-test.serial('recomputing with the same reducer does not warn that _persist was lost', async t => {
+test.serial('recomputing does not warn that _persist was lost, with actions from before PERSIST', async t => {
   const errors: any[] = []
   const original = console.error
   console.error = (...args: any[]) => { errors.push(args) }
   try {
     const storage = createStorage()
     const store = createDevtoolsStore(persistReducer({ key: 'root', storage }, reducer))
-    persistStore(store as any)
+    const persistor = persistStore(store as any, { manualPersist: true })
+    // replayed without _persist, since PERSIST comes after it
+    store.dispatch({ type: 'visit', at: 'before persist' })
+    persistor.persist()
     await sleep(10)
     store.dispatch({ type: 'visit', at: 'new' })
     store.recompute()
+    store.replaceReducer(persistReducer({ key: 'root', storage }, reducer))
     await sleep(10)
     t.is(store.getState().lastAccess, 'new')
     t.is(storage.calls.getItem, 1)
@@ -167,4 +172,108 @@ test.serial('recomputing with the same reducer does not warn that _persist was l
     console.error = original
   }
   t.deepEqual(errors, [])
+})
+
+test('a replay after pause and purge does not write the purged state back', async t => {
+  const storage = createStorage({ 'persist:root': { lastAccess: 'old', _persist: PERSIST_STATE } })
+  const config = { key: 'root', storage }
+  const store = createDevtoolsStore(persistReducer(config, reducer))
+  const persistor = persistStore(store as any)
+  await sleep(10)
+  // resume once, so the history has a second PERSIST
+  persistor.pause()
+  persistor.persist()
+  // logging out: stop saving, write what's pending, then clear storage
+  persistor.pause()
+  await persistor.flush()
+  await persistor.purge()
+
+  store.replaceReducer(persistReducer(config, reducer))
+  await sleep(10)
+  t.false('persist:root' in storage.data)
+  t.is(storage.calls.removeItem, 1)
+})
+
+test('a replay keeps saving when the history paused and then resumed', async t => {
+  const storage = createStorage({ 'persist:root': { lastAccess: 'old', _persist: PERSIST_STATE } })
+  const config = { key: 'root', storage }
+  const store = createDevtoolsStore(persistReducer(config, reducer))
+  const persistor = persistStore(store as any)
+  await sleep(10)
+  persistor.pause()
+  persistor.persist()
+
+  store.replaceReducer(persistReducer(config, reducer))
+  store.dispatch({ type: 'visit', at: 'after replay' })
+  await persistor.flush()
+  t.is(storedValue(storage, 'persist:root', 'lastAccess'), 'after replay')
+})
+
+test('a replay keeps the version state was stored with when the new reducer has a newer one', async t => {
+  const storage = createStorage({ 'persist:root': { lastAccess: 'old', _persist: { version: 1, rehydrated: true } } })
+  const store = createDevtoolsStore(persistReducer({ key: 'root', storage, version: 1 }, reducer))
+  const persistor = persistStore(store as any)
+  await sleep(10)
+
+  // hot reloading a version bump: the migration runs on the next launch
+  const migrate = createMigrate({ 2: (state: any) => ({ ...state, lastAccess: 'migrated' }) })
+  store.replaceReducer(persistReducer({ key: 'root', storage, version: 2, migrate }, reducer))
+  store.dispatch({ type: 'visit', at: 'new' })
+  await persistor.flush()
+  t.is(storedValue(storage, 'persist:root', 'lastAccess'), 'new')
+  t.is(store.getState()._persist.version, 1)
+  t.is(storedValue(storage, 'persist:root', '_persist').version, 1)
+})
+
+test('a replay does not read a persistReducer added without replaceReducer again', async t => {
+  const storage = createStorage({ 'persist:notes': { items: ['stored'], _persist: PERSIST_STATE } })
+  const items = (state: any = { items: [] }, action: any) =>
+    action.type === 'add' ? { ...state, items: [...state.items, action.item] } : state
+  // a reducer map that grows in place, like RTK's combineSlices().inject()
+  const reducers: Record<string, Reducer<any, any>> = { other: items }
+  const root = (state: any = {}, action: any) => {
+    const next: any = {}
+    for (const key of Object.keys(reducers)) next[key] = reducers[key](state[key], action)
+    return next
+  }
+  const store = createDevtoolsStore(persistReducer({ key: 'root', storage, denylist: ['notes'] }, root))
+  const persistor = persistStore(store as any)
+  await sleep(10)
+  reducers.notes = persistReducer({ key: 'notes', storage }, items)
+  persistor.persist()
+  await sleep(10)
+  store.dispatch({ type: 'add', item: 'new' })
+  await persistor.flush()
+  const reads = storage.calls.getItem
+
+  store.recompute()
+  await sleep(10)
+  t.deepEqual(store.getState().notes.items, ['stored', 'new'])
+  t.is(storage.calls.getItem, reads)
+  t.deepEqual(storedValue(storage, 'persist:notes', 'items'), ['stored', 'new'])
+})
+
+test.serial('two persistReducers with the same key both read and purge, with a warning', async t => {
+  const errors: string[] = []
+  const original = console.error
+  console.error = (...args: any[]) => { errors.push(String(args[0])) }
+  try {
+    const storage = createStorage({
+      'a:settings': { lastAccess: 'a', _persist: PERSIST_STATE },
+      'b:settings': { lastAccess: 'b', _persist: PERSIST_STATE },
+    })
+    const store = createDevtoolsStore(combineReducers({
+      a: persistReducer({ key: 'settings', keyPrefix: 'a:', storage }, reducer),
+      b: persistReducer({ key: 'settings', keyPrefix: 'b:', storage }, reducer),
+    }))
+    const persistor = persistStore(store as any)
+    await sleep(10)
+    t.is(storage.calls.getItem, 2)
+    await persistor.purge()
+    t.false('a:settings' in storage.data)
+    t.false('b:settings' in storage.data)
+  } finally {
+    console.error = original
+  }
+  t.true(errors.some(e => e.includes('more than one persistReducer uses the key "settings"')))
 })

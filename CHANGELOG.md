@@ -46,7 +46,7 @@ and v7 writes the same format. See the [migration guide](docs/MigrationGuide-v7.
 - A reducer throwing while handling `REHYDRATE` left the app unbootstrapped and fired a misleading timeout (#719)
 - Type errors when passing `stateReconciler: hardSet` / `autoMergeLevel1` / `autoMergeLevel2` inline (#1368)
 - Array or primitive state passed to `persistReducer` was silently turned into an object; now reported in development (#215)
-- With Redux DevTools, replacing the reducer (hot reloading, injected reducers) or toggling an action read stored state again, which could undo recent changes, and replayed purges; replays now rebuild the same state without touching storage (#1387)
+- With Redux DevTools, replacing the reducer (hot reloading, injected reducers) or toggling an action read stored state again, which could undo recent changes, and repeated purges; replays now rebuild the same state without reading or purging storage, and leave pausing and the stored version as they were (#1387)
 
 ## [6.1.0] - 2021-10-17 (never published)
 Thanks to [@smellman](https://github.com/smellman) for the TypeScript updates.

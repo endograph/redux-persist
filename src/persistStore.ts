@@ -8,6 +8,7 @@ import type {
 import { AnyAction, createStore, Store } from 'redux'
 import { FLUSH, PAUSE, PERSIST, PURGE, REGISTER, REHYDRATE } from './constants.js'
 import { attachHandle } from './persistorHandle.js'
+import type { PersistorHandle } from './persistorHandle.js'
 
 type BoostrappedCb = () => any;
 
@@ -98,29 +99,33 @@ export default function persistStore(
     }
   }
 
+  // Once the dispatch returns, the handle is marked: persistReducer treats a
+  // later sighting as a devtools replay (#1387)
+  const dispatchWithHandle = (action: { type: string }, handle: PersistorHandle) => {
+    try {
+      store.dispatch(attachHandle(action, handle))
+    } finally {
+      handle.dispatched = true
+    }
+  }
+
   const persistor: Persistor = {
     ..._pStore,
     purge: () => {
       const results: Array<any> = []
-      store.dispatch(
-        attachHandle({ type: PURGE }, { result: purgeResult => results.push(purgeResult) })
-      )
+      dispatchWithHandle({ type: PURGE }, { result: purgeResult => results.push(purgeResult) })
       return Promise.all(results)
     },
     flush: () => {
       const results: Array<any> = []
-      store.dispatch(
-        attachHandle({ type: FLUSH }, { result: flushResult => results.push(flushResult) })
-      )
+      dispatchWithHandle({ type: FLUSH }, { result: flushResult => results.push(flushResult) })
       return Promise.all(results)
     },
     pause: () => {
-      store.dispatch({
-        type: PAUSE,
-      })
+      dispatchWithHandle({ type: PAUSE }, {})
     },
     persist: () => {
-      store.dispatch(attachHandle({ type: PERSIST }, { register, rehydrate }))
+      dispatchWithHandle({ type: PERSIST }, { register, rehydrate })
     },
   }
 

@@ -12,6 +12,8 @@ export interface PersistorHandle {
   register?: (key: string) => void
   rehydrate?: (key: string, payload: any, err?: any) => void
   result?: (result: Promise<any> | null | undefined) => void
+  // set when the dispatch that carried the handle returns (see persistReducer)
+  dispatched?: boolean
 }
 
 export function attachHandle<A extends object>(action: A, handle: PersistorHandle): A {

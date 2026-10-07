@@ -55,6 +55,8 @@ test.serial('resetting above persistReducer warns once', async t => {
     await sleep(10)
     store.dispatch({ type: 'logout' })
     store.dispatch({ type: 'login', name: 'Grace' })
+    // the warning waits a tick, in case _persist comes back (a devtools recompute)
+    await sleep(10)
   })
   t.is(errors.length, 1)
   t.regex(errors[0], /"root" lost its _persist key.*#resetting-state-on-logout/)
