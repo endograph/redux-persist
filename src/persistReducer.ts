@@ -268,7 +268,8 @@ export default function persistReducer<S, A extends Action = UnknownAction, P = 
       // report the error instead of letting it escape the storage promise (#719).
       const dispatchRehydrate = (payload: any, err?: Error) => {
         try {
-          rehydrate(config.key, payload, err)
+          // a read that finishes after the store was purged brings nothing back
+          rehydrate(config.key, persisted.purged ? undefined : payload, err)
         } catch (reducerError) {
           persisted.readFailed = true
           if (process.env.NODE_ENV !== 'production')
@@ -452,6 +453,10 @@ export default function persistReducer<S, A extends Action = UnknownAction, P = 
     // is state modified ? return original : return updated
     const newState = baseReducer(restState, action)
     if (newState === restState) return state
+    // A nested persistReducer's REHYDRATE passing through a purged store
+    // doesn't save it, which would write back what was purged; the next real
+    // change saves as usual.
+    if (action.type === REHYDRATE && store && store.purged) return withPersist(newState, _persist)
     return conditionalUpdate(withPersist(newState, _persist))
   }
 }

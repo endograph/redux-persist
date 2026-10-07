@@ -5,7 +5,7 @@
 import test from 'ava'
 import { combineReducers, legacy_createStore as createStore } from 'redux'
 
-import { persistReducer, persistStore } from '../src'
+import { persistReducer, persistStore, REHYDRATE } from '../src'
 import type { PersistConfig } from '../src'
 import sleep from './utils/sleep'
 
@@ -13,8 +13,11 @@ const createStorage = (delays: Record<string, number> = {}) => {
   const data: Record<string, string> = {}
   return {
     data,
-    getItem: (key: string) =>
-      new Promise<string | undefined>(resolve => setTimeout(() => resolve(data[key]), delays[key] || 0)),
+    // reads what's stored when the read starts, and delivers it later
+    getItem: (key: string) => {
+      const value = data[key]
+      return new Promise<string | undefined>(resolve => setTimeout(() => resolve(value), delays[key] || 0))
+    },
     setItem: (key: string, value: string) => { data[key] = value; return Promise.resolve() },
     removeItem: (key: string) => { delete data[key]; return Promise.resolve() },
   }
@@ -73,4 +76,35 @@ test('a persistReducer added after a purge still loads its stored state', async 
   store.dispatch({ type: 'add', item: 'new' })
   await persistor.flush()
   t.deepEqual(stored(storage, 'persist:notifications', 'items'), ['stored', 'new'])
+})
+
+test('a read that finishes after a purge does not bring the purged data back', async t => {
+  const storage = createStorage({ 'persist:auth': 30 })
+  const PERSIST_STATE = JSON.stringify({ version: -1, rehydrated: true })
+  // the root also stores auth, as it does without a denylist
+  storage.data['persist:root'] = JSON.stringify({
+    auth: JSON.stringify({ items: ['secret'], _persist: { version: -1, rehydrated: true } }),
+    _persist: PERSIST_STATE,
+  })
+  storage.data['persist:auth'] = JSON.stringify({ items: JSON.stringify(['secret']), _persist: PERSIST_STATE })
+  // a plain reducer that also reads auth's REHYDRATE
+  const lastAuth = (state: any = null, action: any) =>
+    action.type === REHYDRATE && action.key === 'auth' && action.payload ? action.payload.items : state
+  const store = createStore(
+    persistReducer(
+      { key: 'root', storage },
+      combineReducers({ auth: persistReducer({ key: 'auth', storage }, items), lastAuth })
+    )
+  )
+  const persistor = persistStore(store)
+  await sleep(5)
+  // log out while auth's read is in flight (writing what's pending first),
+  // then the app reloads
+  await persistor.flush()
+  await persistor.purge()
+  await sleep(40)
+
+  t.deepEqual(Object.keys(storage.data), [])
+  t.is((store.getState() as any).lastAuth, null)
+  t.true((store.getState() as any).auth._persist.rehydrated)
 })
