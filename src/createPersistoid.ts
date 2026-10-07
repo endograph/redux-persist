@@ -138,7 +138,8 @@ export default function createPersistoid(
       return
     }
 
-    const write = () => storage.setItem(storageKey, serialized)
+    // a storage engine may return a value instead of a promise, or throw
+    const write = () => new Promise<any>(resolve => resolve(storage.setItem(storageKey, serialized)))
     // only defer while the previous writer's write is pending, so writes stay
     // synchronous otherwise (flush() in beforeunload relies on that)
     writePromise = (waitFor ? waitFor.then(write, write) : write()).catch(onWriteFail)

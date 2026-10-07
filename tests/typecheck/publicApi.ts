@@ -89,6 +89,11 @@ const constConfig = { key: 'const', storage, allowlist: ['user'] as const }
 persistReducer(constConfig, rootReducer)
 persistReducer({ key: 'slice', storage, denylist: ['name'] }, user)
 persistCombineReducers({ key: 'combined-allow', storage, allowlist: ['settings'] }, { user, settings })
+// ...or a function of the key (#1283), including in a separately declared config
+persistReducer({ key: 'allow-fn', storage, allowlist: key => key.startsWith('user') }, rootReducer)
+const fnConfig = { key: 'fn', storage, denylist: (key: string) => key.startsWith('temp') }
+persistReducer(fnConfig, rootReducer)
+createTransform(null, null, { denylist: key => key.startsWith('temp') })
 
 // built-in reconcilers passed inline don't break state inference (#1368)
 const hardSetStore = configureStore({ reducer: persistReducer({ key: 'hard', storage, stateReconciler: hardSet }, rootReducer) })

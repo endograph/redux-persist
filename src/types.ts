@@ -45,13 +45,15 @@ export interface PersistConfig<S, RS = any, HSS = any, ESS = any> {
    */
   keyPrefix?: string;
   /**
-   * Only persist these top-level state keys.
+   * Only persist these top-level state keys, or the keys this function
+   * returns true for.
    */
-  allowlist?: ReadonlyArray<keyof S & string>;
+  allowlist?: ReadonlyArray<keyof S & string> | ((key: string) => boolean);
   /**
-   * Don't persist these top-level state keys.
+   * Don't persist these top-level state keys, or the keys this function
+   * returns true for.
    */
-  denylist?: ReadonlyArray<keyof S & string>;
+  denylist?: ReadonlyArray<keyof S & string> | ((key: string) => boolean);
   /**
    * @deprecated Use `allowlist`, which is checked against your state's keys.
    */

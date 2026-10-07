@@ -8,7 +8,8 @@ export default function purgeStoredState(config: PersistConfig<any>):any {
   const storageKey = `${
     config.keyPrefix !== undefined ? config.keyPrefix : KEY_PREFIX
   }${config.key}`
-  return storage.removeItem(storageKey, warnIfRemoveError)
+  // a storage engine may return a value instead of a promise, or throw
+  return new Promise(resolve => resolve(storage.removeItem(storageKey, warnIfRemoveError)))
 }
 
 function warnIfRemoveError(err: any) {
