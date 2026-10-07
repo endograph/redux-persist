@@ -120,6 +120,8 @@ AppState.addEventListener('change', (state) => {
 
 With the built-in `localStorage` and `sessionStorage` engines, `flush()` writes synchronously. Async engines such as AsyncStorage start the write immediately.
 
+On React Native, timers may not run while the app is in the background, for example in a [Headless JS](https://reactnative.dev/docs/headless-js-android) task, so a write can wait until the app is in the foreground again. In background work, `await persistor.flush()` after dispatching to save right away.
+
 ### `type PersistConfig`
 ```js
 {
