@@ -20,7 +20,8 @@ export default function getStoredState(
   } else {
     deserialize = defaultDeserialize
   }
-  return storage.getItem(storageKey).then((serialized: any) => {
+  // a storage engine may return a value instead of a promise, or throw
+  return new Promise<any>(resolve => resolve(storage.getItem(storageKey))).then((serialized: any) => {
     if (!serialized) return undefined
     else {
       try {
