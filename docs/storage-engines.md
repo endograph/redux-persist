@@ -5,7 +5,7 @@
 - **sessionStorage** `import storageSession from 'redux-persist/storage/session'`
 
 Both store nothing during server rendering (no `window`), and stored state is loaded in the browser. If the browser blocks storage (for example in some privacy modes), a warning is logged in development and state isn't persisted.
-- **custom** any conforming storage api implementing the following methods: `setItem` `getItem` `removeItem`. (**NB**: These methods must support promises)
+- **custom** any conforming storage api implementing the following methods: `setItem` `getItem` `removeItem`. Each can return a promise or a plain value, so a synchronous storage engine works as is.
 
 ## Community
 These packages are maintained by third parties, not by redux-persist. We don't review or vouch for them, so check that a package is maintained and trustworthy before you depend on it.
