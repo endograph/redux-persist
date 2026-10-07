@@ -143,6 +143,13 @@ declare the config separately, annotate it with `PersistConfig<RootState>` or
 use `as const` on the array. The older names `blacklist` and `whitelist` still
 work.
 
+For keys you can't list ahead of time, pass a function that's called with each
+top-level key:
+
+```ts
+persistReducer({ key: 'root', storage, denylist: key => key.startsWith('temp') }, rootReducer) // keys starting with temp will not be persisted
+```
+
 To go deeper than one level, use [nested persists](docs/nested-persists.md).
 
 ### Resetting state on logout

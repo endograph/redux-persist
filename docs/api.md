@@ -126,8 +126,8 @@ With the built-in `localStorage` and `sessionStorage` engines, `flush()` writes 
   key: string, // the key for the persist
   storage: Object, // the storage adapter, following the AsyncStorage api
   version?: number, // the state version as an integer (defaults to -1)
-  allowlist?: Array<keyof State>, // only persist these keys
-  denylist?: Array<keyof State>, // do not persist these keys
+  allowlist?: Array<keyof State> | (key) => boolean, // only persist these keys
+  denylist?: Array<keyof State> | (key) => boolean, // do not persist these keys
   whitelist?: Array<string>, // deprecated: older name for allowlist
   blacklist?: Array<string>, // deprecated: older name for denylist
   migrate?: (Object, number) => Promise<Object>,

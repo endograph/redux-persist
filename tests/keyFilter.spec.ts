@@ -65,3 +65,26 @@ test('createTransform applies to allowlisted keys and skips denylisted ones', t 
   t.deepEqual(deny.out({ name: 'ada' } as any, 'other', {}), { name: 'ADA' })
   t.deepEqual(legacy.in({ name: 'ada' } as any, 'user', {}), { name: 'ADA' })
 })
+
+test('allowlist and denylist take a function of the key (#1283)', async t => {
+  t.is(await written({ allowlist: (key: string) => key !== 'settings' }), await written({ allowlist: ['user', 'count'] }))
+  t.is(await written({ denylist: (key: string) => key.startsWith('s') }), await written({ denylist: ['settings'] }))
+})
+
+test('_persist is always written, and a function filter is never called with it', async t => {
+  const seen: string[] = []
+  const stored = JSON.parse(await written({ denylist: (key: string) => { seen.push(key); return key.startsWith('_') } }))
+  t.deepEqual(Object.keys(stored), ['user', 'settings', 'count', '_persist'])
+  t.false(seen.includes('_persist'))
+  t.deepEqual(Object.keys(JSON.parse(await written({ allowlist: () => false }))), ['_persist'])
+})
+
+test('createTransform takes a function allowlist or denylist', t => {
+  const upper = (s: any) => ({ ...s, name: String(s.name).toUpperCase() })
+  const allow = createTransform(upper, upper, { allowlist: key => key.startsWith('user') })
+  const deny = createTransform(upper, upper, { denylist: key => key === 'user' })
+  t.deepEqual(allow.in({ name: 'ada' } as any, 'userProfile', {}), { name: 'ADA' })
+  t.deepEqual(allow.in({ name: 'ada' } as any, 'other', {}), { name: 'ada' })
+  t.deepEqual(deny.out({ name: 'ada' } as any, 'user', {}), { name: 'ada' })
+  t.deepEqual(deny.out({ name: 'ada' } as any, 'other', {}), { name: 'ADA' })
+})
