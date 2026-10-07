@@ -46,6 +46,7 @@ and v7 writes the same format. See the [migration guide](docs/MigrationGuide-v7.
 - A reducer throwing while handling `REHYDRATE` left the app unbootstrapped and fired a misleading timeout (#719)
 - Type errors when passing `stateReconciler: hardSet` / `autoMergeLevel1` / `autoMergeLevel2` inline (#1368)
 - Array or primitive state passed to `persistReducer` was silently turned into an object; now reported in development (#215)
+- Hydration errors with server rendering when stored state loaded before React hydrated (a persistor created at module level, as in the docs): with React 18+, `PersistGate` and `useRehydrated` render as not loaded on the server and while hydrating, then update (#1452)
 
 ## [6.1.0] - 2021-10-17 (never published)
 Thanks to [@smellman](https://github.com/smellman) for the TypeScript updates.

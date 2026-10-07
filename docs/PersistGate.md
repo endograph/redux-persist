@@ -48,6 +48,14 @@ const Header = () => {
 }
 ```
 
+## Server rendering
+Stored state only loads in the browser. On the server, `PersistGate` renders `loading` and `useRehydrated` returns `false`. With React 18 or later they do the same while the page hydrates in the browser, so the first render matches the server's HTML, then they update once stored state has loaded. (React 16 and 17 can't tell when a page is hydrating.)
+
+That means what's inside `PersistGate` isn't server rendered: the server sends `loading`. To server-render a page, don't put it behind `PersistGate`. Render it directly; stored state is applied right after hydration, and parts that need it can wait with `useRehydrated`.
+
+## When loading takes a while
+`PersistGate` shows `loading` until stored state has been read. If reading takes longer than `timeout` (5 seconds by default, see [`PersistConfig`](api.md#type-persistconfig)), for example when a storage engine never answers, as can happen during some React Native development reloads, the app starts with its initial state. Writes stay off until the read finishes, and then the stored state is applied, so stored data isn't overwritten in the meantime.
+
 ## Next.js App Router (React Server Components)
 `PersistGate`, `useRehydrated` and react-redux's `Provider` need state and effects, so they have to render from a Client Component. Layouts and pages in the App Router are Server Components by default, so put the providers in their own file that starts with `'use client'`:
 

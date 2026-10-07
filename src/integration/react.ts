@@ -7,11 +7,29 @@ const React: typeof ReactModule =
   (ReactModule as unknown as { default?: typeof ReactModule }).default || ReactModule
 import type { Persistor } from '../types.js'
 
+// React 18+
+const useSyncExternalStore = (React as { useSyncExternalStore?: typeof ReactModule.useSyncExternalStore })
+  .useSyncExternalStore
+
+// Stored state only loads in the browser, so a server render always shows it
+// as not loaded yet, and hydrating that HTML has to start from the same value
+// (#1452). React uses this while hydrating, then updates to the real value.
+const getServerSnapshot = () => false
+
 /**
  * Returns whether the persistor has finished loading stored state, and
- * re-renders when it does. Needs React 16.8+.
+ * re-renders when it does. Needs React 16.8+. With React 18+ it's safe for
+ * server rendering: on the server and while hydrating it returns false.
  */
 export function useRehydrated(persistor: Persistor): boolean {
+  // which hook runs depends only on the React version, never between renders
+  return useSyncExternalStore
+    ? useSyncExternalStore(persistor.subscribe, () => persistor.getState().bootstrapped, getServerSnapshot)
+    : useRehydratedWithEffect(persistor)
+}
+
+// React 16.8 and 17, which have no useSyncExternalStore
+function useRehydratedWithEffect(persistor: Persistor): boolean {
   // Read from the current persistor on every render, so switching persistors
   // never reports the previous one's status; state only triggers re-renders.
   const bootstrapped = persistor.getState().bootstrapped
@@ -47,78 +65,57 @@ export interface PersistGateProps {
   children?: ReactNode | ((bootstrapped: boolean) => ReactNode)
 }
 
-type State = {
-  bootstrapped: boolean,
-}
-
-// PersistGate stays a class component: its generated types are accepted as a
-// JSX component even when an app ends up with two copies of @types/react
-// (#1375), which a function component's return type isn't.
-export class PersistGate extends React.PureComponent<PersistGateProps, State> {
-  static defaultProps = {
-    children: null,
-    loading: null,
-  }
-
-  state: State
-  _unsubscribe?: () => void
-  _mounted = false
+// The gate itself, a function component so it can use useRehydrated
+function Gate({ persistor, loading, onBeforeLift, children }: PersistGateProps): ReactNode {
+  const bootstrapped = useRehydrated(persistor)
   // onBeforeLift runs once, even when StrictMode mounts the component twice
-  _beforeLift?: Promise<void>
+  const beforeLift = React.useRef<Promise<void> | null>(null)
+  const [beforeLiftDone, setBeforeLiftDone] = React.useState(false)
+  // Once lifted, the gate stays lifted, even if the persistor briefly reports
+  // loading again (persistReducers added later rehydrating).
+  const lifted = React.useRef(false)
+  if (bootstrapped && (!onBeforeLift || beforeLiftDone)) lifted.current = true
 
-  constructor(props: PersistGateProps) {
-    super(props)
-    // already loaded with nothing to wait for: render children on the first
-    // render instead of flashing `loading` (#1070)
-    this.state = {
-      bootstrapped: props.persistor.getState().bootstrapped && !props.onBeforeLift,
-    }
-  }
-
-  componentDidMount(): void {
-    this._mounted = true
-    this._unsubscribe = this.props.persistor.subscribe(this.handlePersistorState)
-    this.handlePersistorState()
-  }
-
-  handlePersistorState = (): void => {
-    if (this.state.bootstrapped || !this.props.persistor.getState().bootstrapped) return
-    this._unsubscribe && this._unsubscribe()
-
-    const { onBeforeLift } = this.props
-    if (!onBeforeLift) {
-      this.setState({ bootstrapped: true })
-      return
-    }
-    if (!this._beforeLift)
-      this._beforeLift = Promise.resolve()
+  React.useEffect(() => {
+    if (!bootstrapped || !onBeforeLift || lifted.current) return
+    let active = true
+    if (!beforeLift.current)
+      beforeLift.current = Promise.resolve()
         .then(() => onBeforeLift())
         .catch(err => {
           if (process.env.NODE_ENV !== 'production')
             console.error('redux-persist: onBeforeLift failed; lifting PersistGate anyway.', err)
         })
-    this._beforeLift.then(() => {
-      if (this._mounted) this.setState({ bootstrapped: true })
+    beforeLift.current.then(() => {
+      if (active) setBeforeLiftDone(true)
     })
-  }
+    return () => {
+      active = false
+    }
+  }, [bootstrapped, onBeforeLift])
 
-  componentWillUnmount(): void {
-    this._mounted = false
-    this._unsubscribe && this._unsubscribe()
+  if (process.env.NODE_ENV !== 'production') {
+    if (typeof children === 'function' && loading)
+      console.error(
+        'redux-persist: PersistGate expects either a function child or loading prop, but not both. The loading prop will be ignored.'
+      )
+  }
+  if (typeof children === 'function') {
+    return children(lifted.current)
+  }
+  return lifted.current ? children : loading
+}
+
+// PersistGate stays a class component: its generated types are accepted as a
+// JSX component even when an app ends up with two copies of @types/react
+// (#1375), which a function component's return type isn't.
+export class PersistGate extends React.PureComponent<PersistGateProps> {
+  static defaultProps = {
+    children: null,
+    loading: null,
   }
 
   render(): ReactNode {
-    const { children, loading } = this.props
-    if (process.env.NODE_ENV !== 'production') {
-      if (typeof children === 'function' && loading)
-        console.error(
-          'redux-persist: PersistGate expects either a function child or loading prop, but not both. The loading prop will be ignored.'
-        )
-    }
-    if (typeof children === 'function') {
-      return children(this.state.bootstrapped)
-    }
-
-    return this.state.bootstrapped ? children : loading
+    return React.createElement(Gate, this.props)
   }
 }
