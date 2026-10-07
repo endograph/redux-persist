@@ -53,6 +53,7 @@ and v7 writes the same format. See the [migration guide](docs/MigrationGuide-v7.
 - `persistStore` crashing with a storage engine that returns values instead of promises, such as a synchronous engine or a Jest mock: each storage method can now return either, and one that throws is handled like a failed read or write (#1397, #1281)
 - A storage read that rejected without a reason was taken for empty storage, so initial state was saved over the stored data; it's now a failed read, as is a callback-style `getItem` that returns nothing
 - After `persistor.purge()`, a nested `persistReducer` whose read finished after the purge, or one added later (code splitting), never finished rehydrating, so it stopped saving: the purged parent swallowed its `REHYDRATE`
+- Hydration errors with server rendering when stored state loaded before React hydrated (a persistor created at module level, as in the docs): with React 18+, `PersistGate` and `useRehydrated` render as not loaded on the server and while hydrating, then update (#1452)
 
 ## [6.1.0] - 2021-10-17 (never published)
 Thanks to [@smellman](https://github.com/smellman) for the TypeScript updates.
