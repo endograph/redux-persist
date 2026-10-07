@@ -77,11 +77,13 @@ const appliedRehydrates = new WeakSet<object>()
 const isObject = (value: unknown): value is Record<string, any> =>
   value !== null && typeof value === 'object' && !Array.isArray(value)
 
+const isFrozenObject = (value: unknown) => value !== null && typeof value === 'object' && Object.isFrozen(value)
 // Adds _persist to the state the reducer returned. Redux Toolkit (immer)
-// freezes the state it produces, so keep the new top level frozen too (#1298).
-const withPersist = (state: any, _persist: any) => {
+// freezes the state it produces, so when that state, or the state this
+// reducer was given, is frozen, the new top level is frozen too (#1298).
+const withPersist = (state: any, _persist: any, frozen: boolean) => {
   const result = { ...state, _persist }
-  return state !== null && typeof state === 'object' && Object.isFrozen(state) ? Object.freeze(result) : result
+  return frozen || isFrozenObject(state) ? Object.freeze(result) : result
 }
 
 // When a parent persistReducer also stores a nested persisted reducer's
@@ -194,6 +196,8 @@ export default function persistReducer<S, A extends Action = UnknownAction, P = 
   return (state: any, action: any) => {
     const { _persist, ...rest } = state || {}
     const restState: S = rest
+    // rest is a copy, so whether state was frozen is checked here
+    const frozen = isFrozenObject(state)
     if (_persist) cancelLostPersistWarning()
     // undefined when this store hasn't been persisted (including state
     // preloaded from elsewhere, e.g. server rendering, that has a _persist key)
@@ -232,7 +236,7 @@ export default function persistReducer<S, A extends Action = UnknownAction, P = 
         // A devtools replay: rebuild the state this PERSIST produced, without
         // registering, reading storage or resuming writes. The store's flags
         // (paused, purged) keep their current values.
-        if (store) return withPersist(baseReducer(restState, action), _persist)
+        if (store) return withPersist(baseReducer(restState, action), _persist, frozen)
         // this persistReducer was added after the original PERSIST (without
         // replaceReducer), so it isn't started by this one
         if (!used) return _persist ? state : baseReducer(state, action)
@@ -242,7 +246,8 @@ export default function persistReducer<S, A extends Action = UnknownAction, P = 
         startedPersisting = true
         return withPersist(
           baseReducer(restState, action),
-          trackStore({ version: used.version, rehydrated: false }, used)
+          trackStore({ version: used.version, rehydrated: false }, used),
+          frozen
         )
       }
       if (!store && used && process.env.NODE_ENV !== 'production')
@@ -335,7 +340,7 @@ export default function persistReducer<S, A extends Action = UnknownAction, P = 
         // We still need to call the base reducer because there might be nested
         // uses of persistReducer which need to be aware of the PERSIST action.
         // conditionalUpdate saves any changes made while paused.
-        return conditionalUpdate(withPersist(baseReducer(restState, action), _persist))
+        return conditionalUpdate(withPersist(baseReducer(restState, action), _persist, frozen))
       }
 
       register(config.key)
@@ -369,7 +374,8 @@ export default function persistReducer<S, A extends Action = UnknownAction, P = 
 
       return withPersist(
         baseReducer(restState, action),
-        trackStore({ version, rehydrated: false }, persisted)
+        trackStore({ version, rehydrated: false }, persisted),
+        frozen
       )
     } else if (action.type === PURGE) {
       const handle = getHandle(action)
@@ -384,14 +390,14 @@ export default function persistReducer<S, A extends Action = UnknownAction, P = 
         // purge storage even if this store hasn't started persisting yet
         handle.result(purgeStoredState(config))
       }
-      return withPersist(baseReducer(restState, action), _persist)
+      return withPersist(baseReducer(restState, action), _persist, frozen)
     } else if (action.type === FLUSH) {
       const handle = getHandle(action)
       if (handle && handle.result && !isReplay(handle)) {
         usesOf(handle).set(config.key, store)
         handle.result(store && store.persistoid && store.persistoid.flush())
       }
-      return withPersist(baseReducer(restState, action), _persist)
+      return withPersist(baseReducer(restState, action), _persist, frozen)
     } else if (action.type === PAUSE) {
       // a devtools replay of persistor.pause() leaves the store as it is now
       const handle = getHandle(action)
@@ -406,10 +412,7 @@ export default function persistReducer<S, A extends Action = UnknownAction, P = 
       // noop on restState if purging, unless devtools is replaying a REHYDRATE
       // that was applied before the purge
       if (store.purged && !appliedRehydrates.has(action))
-        return {
-          ...restState,
-          _persist: trackStore({ ..._persist, rehydrated: true }, store),
-        }
+        return withPersist(restState, trackStore({ ..._persist, rehydrated: true }, store), frozen)
 
       const reducedState = baseReducer(restState, action)
       const inboundState = action.payload
@@ -421,7 +424,8 @@ export default function persistReducer<S, A extends Action = UnknownAction, P = 
 
       const newState = withPersist(
         reconciledRest,
-        trackStore({ ..._persist, rehydrated: true }, store)
+        trackStore({ ..._persist, rehydrated: true }, store),
+        frozen
       )
       appliedRehydrates.add(action)
       return conditionalUpdate(newState)
@@ -458,7 +462,7 @@ export default function persistReducer<S, A extends Action = UnknownAction, P = 
     // A nested persistReducer's REHYDRATE passing through a purged store
     // doesn't save it, which would write back what was purged; the next real
     // change saves as usual.
-    if (action.type === REHYDRATE && store && store.purged) return withPersist(newState, _persist)
-    return conditionalUpdate(withPersist(newState, _persist))
+    if (action.type === REHYDRATE && store && store.purged) return withPersist(newState, _persist, frozen)
+    return conditionalUpdate(withPersist(newState, _persist, frozen))
   }
 }

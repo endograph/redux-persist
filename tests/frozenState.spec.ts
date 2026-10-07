@@ -22,6 +22,8 @@ test('state is frozen when the reducer freezes its state', async t => {
   const store = configureStore({ reducer: persistReducer({ key: 'root', storage }, slice.reducer) })
   const persistor = persistStore(store)
   await sleep(10)
+  // from startup, before any action the slice handles
+  t.true(Object.isFrozen(store.getState()))
 
   store.dispatch(slice.actions.toggle())
   const state: any = store.getState()
