@@ -20,6 +20,7 @@ and v7 writes the same format. See the [migration guide](docs/MigrationGuide-v7.
 - `persistor.flush()` guidance for saving before a tab closes or an app is backgrounded
 - `DEFAULT_TIMEOUT` is exported (#1060)
 - A development warning when state is reset above `persistReducer` (which stops saving), and docs for resetting state on logout (#659)
+- A development warning when `replaceReducer` swaps in a `persistReducer` that saves under a different key (for example a per-user `keyPrefix`): the current state is written there, over what's stored (#1112)
 
 ### Changed
 - Redux Toolkit works without `serializableCheck.ignoredActions`: actions no longer carry functions

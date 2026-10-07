@@ -9,6 +9,7 @@ import {
   REHYDRATE,
   DEFAULT_VERSION,
   DEFAULT_TIMEOUT,
+  KEY_PREFIX,
 } from './constants.js'
 
 import type {
@@ -32,6 +33,8 @@ import purgeStoredState from './purgeStoredState.js'
 // which isn't stored (the stored _persist is written from its fields).
 interface PersistedStore {
   owner: object
+  // where the owner saves this store's state (keyPrefix + key)
+  storageKey: string
   persistoid: Persistoid | null
   // purged: REHYDRATE no longer changes state
   purged: boolean
@@ -133,6 +136,9 @@ export default function persistReducer<S, A extends Action = UnknownAction, P = 
       ? autoMergeLevel1
       : config.stateReconciler
   const getStoredState = config.getStoredState || defaultGetStoredState
+  const storageKey = `${
+    config.keyPrefix !== undefined ? config.keyPrefix : KEY_PREFIX
+  }${config.key}`
   const timeout =
     config.timeout !== undefined ? config.timeout : DEFAULT_TIMEOUT
   // identifies this persistReducer instance (see adoptStore)
@@ -167,7 +173,14 @@ export default function persistReducer<S, A extends Action = UnknownAction, P = 
   // built from this instance's config.
   const adoptStore = (store: PersistedStore | undefined) => {
     if (store && store.owner !== owner) {
+      // Replacing the reducer keeps the state, so a new key gets the current
+      // state written over what's stored there (#1112).
+      if (process.env.NODE_ENV !== 'production' && store.storageKey !== storageKey)
+        console.error(
+          `redux-persist: persistReducer was replaced by one that saves to "${storageKey}" instead of "${store.storageKey}". The current state will be saved there, replacing what is stored under that key (replacing the reducer doesn't load it). To switch to another stored state, for example another user's, create a new store and persistor instead.`
+        )
       store.owner = owner
+      store.storageKey = storageKey
       if (store.persistoid) {
         // write what the previous writer had pending now, and cancel its
         // timer, so it can't overwrite newer state later
@@ -239,6 +252,7 @@ export default function persistReducer<S, A extends Action = UnknownAction, P = 
       // a repeat PERSIST for this store reuses its state; otherwise start fresh
       const persisted: PersistedStore = store || {
         owner,
+        storageKey,
         persistoid: null,
         purged: false,
         paused: true,
