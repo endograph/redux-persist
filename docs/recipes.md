@@ -67,10 +67,11 @@ Give the providers a `key`, so the app remounts with the new store:
 To remove a user's data from the device when they log out,
 `await persistor.purge()` before switching.
 
-Don't switch users by passing a `persistReducer` with another key to
-`replaceReducer`: the store keeps its state, so the current user's state gets
-saved under the new key, over what was stored there, and nothing is loaded
-from it. redux-persist logs an error in development when this happens.
+Don't switch users by passing a `persistReducer` with another key or
+storage engine to `replaceReducer`: the store keeps its state, so the current
+user's state gets saved over what's stored for the new user, and nothing is
+loaded from it. redux-persist logs an error in development when the key
+changes.
 
 ## Syncing tabs
 Every tab has its own store, and they all save to the same `localStorage`
