@@ -384,7 +384,10 @@ export default function persistReducer<S, A extends Action = UnknownAction, P = 
         if (handle) usesOf(handle).set(config.key, store)
         store.paused = true
       }
-    } else if (action.type === REHYDRATE && store) {
+    } else if (action.type === REHYDRATE && store && action.key === config.key) {
+      // A REHYDRATE for another key (a nested persistReducer's) continues to
+      // the default passthrough below, even when this store has been purged.
+
       // noop on restState if purging, unless devtools is replaying a REHYDRATE
       // that was applied before the purge
       if (store.purged && !appliedRehydrates.has(action))
@@ -393,23 +396,20 @@ export default function persistReducer<S, A extends Action = UnknownAction, P = 
           _persist: trackStore({ ..._persist, rehydrated: true }, store),
         }
 
-      // @NOTE if key does not match, will continue to default else below
-      if (action.key === config.key) {
-        const reducedState = baseReducer(restState, action)
-        const inboundState = action.payload
-        // only reconcile state if stateReconciler and inboundState are both defined
-        const reconciledRest: S =
-          stateReconciler !== false && inboundState !== undefined
-            ? keepNestedPersist(stateReconciler(inboundState, state, reducedState, config), reducedState)
-            : reducedState
+      const reducedState = baseReducer(restState, action)
+      const inboundState = action.payload
+      // only reconcile state if stateReconciler and inboundState are both defined
+      const reconciledRest: S =
+        stateReconciler !== false && inboundState !== undefined
+          ? keepNestedPersist(stateReconciler(inboundState, state, reducedState, config), reducedState)
+          : reducedState
 
-        const newState = {
-          ...reconciledRest,
-          _persist: trackStore({ ..._persist, rehydrated: true }, store),
-        }
-        appliedRehydrates.add(action)
-        return conditionalUpdate(newState)
+      const newState = {
+        ...reconciledRest,
+        _persist: trackStore({ ..._persist, rehydrated: true }, store),
       }
+      appliedRehydrates.add(action)
+      return conditionalUpdate(newState)
     }
 
     // if we have not already handled PERSIST, straight passthrough
