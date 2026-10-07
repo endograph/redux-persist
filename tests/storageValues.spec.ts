@@ -85,3 +85,44 @@ test.serial('a storage engine that throws is handled like a failed read or write
   t.is(writeErrors.length, 1)
   t.is(writeErrors[0].message, 'write failed')
 })
+
+test.serial('a callback-style getItem is a failed read, not empty storage', async t => {
+  const STORED = JSON.stringify({ count: JSON.stringify(5), _persist: JSON.stringify({ version: -1, rehydrated: true }) })
+  const data: Record<string, string> = { 'persist:root': STORED }
+  const storage = {
+    getItem: (key: string, callback?: (err: any, value?: string) => void) => { setTimeout(() => callback && callback(null, data[key])) },
+    setItem: (key: string, value: string) => { data[key] = value },
+    removeItem: (key: string) => { delete data[key] },
+  }
+  await quietly(async () => {
+    const store = createStore(persistReducer({ key: 'root', storage }, reducer))
+    const persistor = persistStore(store)
+    await sleep(10)
+    store.dispatch({ type: 'INC' })
+    await persistor.flush()
+  })
+  t.is(data['persist:root'], STORED)
+})
+
+test.serial('a read that rejects without a reason is a failed read, not empty storage', async t => {
+  const STORED = JSON.stringify({ count: JSON.stringify(5), _persist: JSON.stringify({ version: -1, rehydrated: true }) })
+  const data: Record<string, string> = { 'persist:root': STORED }
+  const rehydrates: any[] = []
+  const storage = {
+    getItem: () => Promise.reject(),
+    setItem: (key: string, value: string) => { data[key] = value; return Promise.resolve() },
+    removeItem: (key: string) => { delete data[key]; return Promise.resolve() },
+  }
+  await quietly(async () => {
+    const store = createStore(persistReducer({ key: 'root', storage }, (state: any, action: any) => {
+      if (action.type === REHYDRATE) rehydrates.push(action)
+      return reducer(state, action)
+    }))
+    const persistor = persistStore(store)
+    await sleep(10)
+    store.dispatch({ type: 'INC' })
+    await persistor.flush()
+  })
+  t.is(data['persist:root'], STORED)
+  t.truthy(rehydrates[0].err)
+})

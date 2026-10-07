@@ -353,7 +353,7 @@ export default function persistReducer<S, A extends Action = UnknownAction, P = 
               migrateErr => {
                 if (process.env.NODE_ENV !== 'production' && migrateErr)
                   console.error('redux-persist: migration error', migrateErr)
-                _rehydrate(undefined, migrateErr)
+                _rehydrate(undefined, migrateErr || new Error(`redux-persist: migrating stored state for "${config.key}" failed`))
               }
             )
           } else {
@@ -361,7 +361,9 @@ export default function persistReducer<S, A extends Action = UnknownAction, P = 
           }
         },
         err => {
-          _rehydrate(undefined, err)
+          // a storage engine may reject without a reason: still a failed read,
+          // which must not be taken for empty storage
+          _rehydrate(undefined, err || new Error(`redux-persist: reading stored state for "${config.key}" failed`))
         }
       )
 

@@ -21,7 +21,16 @@ export default function getStoredState(
     deserialize = defaultDeserialize
   }
   // a storage engine may return a value instead of a promise, or throw
-  return new Promise<any>(resolve => resolve(storage.getItem(storageKey))).then((serialized: any) => {
+  return new Promise<any>(resolve => {
+    const result = storage.getItem(storageKey)
+    // a getItem(key, callback) that returns nothing is a callback-style
+    // engine; taking that for empty storage would replace the stored data
+    if (result === undefined && storage.getItem.length > 1)
+      throw new Error(
+        'redux-persist: storage.getItem returned nothing. It must return the stored value or a promise of it; callback-style storage engines are not supported.'
+      )
+    resolve(result)
+  }).then((serialized: any) => {
     if (!serialized) return undefined
     else {
       try {
