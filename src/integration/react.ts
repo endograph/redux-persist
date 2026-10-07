@@ -10,28 +10,30 @@ import type { Persistor } from '../types.js'
 // React 18+
 const useSyncExternalStore = (React as { useSyncExternalStore?: typeof ReactModule.useSyncExternalStore })
   .useSyncExternalStore
+const subscribeToNothing = () => () => {}
 
-// Stored state only loads in the browser, so a server render always shows it
-// as not loaded yet, and hydrating that HTML has to start from the same value
-// (#1452). React uses this while hydrating, then updates to the real value.
-const getServerSnapshot = () => false
-
-/**
- * Returns whether the persistor has finished loading stored state, and
- * re-renders when it does. Needs React 16.8+. With React 18+ it's safe for
- * server rendering: on the server and while hydrating it returns false.
- */
-export function useRehydrated(persistor: Persistor): boolean {
-  // which hook runs depends only on the React version, never between renders
-  return useSyncExternalStore
-    ? useSyncExternalStore(persistor.subscribe, () => persistor.getState().bootstrapped, getServerSnapshot)
-    : useRehydratedWithEffect(persistor)
+// Whether this component was rendered on the server or while hydrating
+// server HTML, rather than first rendered in the browser. React calls
+// getServerSnapshot only in those two cases, so it marks the component, and
+// getSnapshot keeps returning the same answer afterwards: React has no change
+// to re-render for once hydration is done (that re-render would be
+// synchronous, which React 18 handles badly). React 16 and 17 can't tell, so
+// they count every render as a browser render.
+function useRenderedFromServer(): boolean {
+  const fromServer = React.useRef(false)
+  if (!useSyncExternalStore) return false
+  return useSyncExternalStore(
+    subscribeToNothing,
+    () => fromServer.current,
+    () => (fromServer.current = true)
+  )
 }
 
-// React 16.8 and 17, which have no useSyncExternalStore
-function useRehydratedWithEffect(persistor: Persistor): boolean {
-  // Read from the current persistor on every render, so switching persistors
-  // never reports the previous one's status; state only triggers re-renders.
+// Whether the persistor has loaded stored state, re-rendering when that
+// changes. Read from the current persistor on every render, so switching
+// persistors never reports the previous one's status; state only triggers
+// re-renders.
+function useBootstrapped(persistor: Persistor): boolean {
   const bootstrapped = persistor.getState().bootstrapped
   // remembers which persistor it saw, so after a switch the update below
   // always differs from the retained state and re-renders
@@ -49,6 +51,24 @@ function useRehydratedWithEffect(persistor: Persistor): boolean {
   }, [persistor])
 
   return bootstrapped
+}
+
+/**
+ * Returns whether the persistor has finished loading stored state, and
+ * re-renders when it does. Needs React 16.8+.
+ *
+ * Stored state only loads in the browser, so on the server it returns false.
+ * With React 18+ it also returns false while hydrating, so the first render
+ * matches the server's HTML, and changes to true in a normal update after.
+ */
+export function useRehydrated(persistor: Persistor): boolean {
+  const fromServer = useRenderedFromServer()
+  const [hydrated, setHydrated] = React.useState(!fromServer)
+  React.useEffect(() => {
+    if (!hydrated) setHydrated(true)
+  }, [hydrated])
+  const bootstrapped = useBootstrapped(persistor)
+  return hydrated && bootstrapped
 }
 
 export interface PersistGateProps {
@@ -73,11 +93,13 @@ function Gate({ persistor, loading, onBeforeLift, children }: PersistGateProps):
   const [beforeLiftDone, setBeforeLiftDone] = React.useState(false)
   // Once lifted, the gate stays lifted, even if the persistor briefly reports
   // loading again (persistReducers added later rehydrating).
-  const lifted = React.useRef(false)
-  if (bootstrapped && (!onBeforeLift || beforeLiftDone)) lifted.current = true
+  const [lifted, setLifted] = React.useState(false)
+  const liftNow = bootstrapped && (!onBeforeLift || beforeLiftDone)
+  if (liftNow && !lifted) setLifted(true)
+  const open = lifted || liftNow
 
   React.useEffect(() => {
-    if (!bootstrapped || !onBeforeLift || lifted.current) return
+    if (open || !bootstrapped || !onBeforeLift) return
     let active = true
     if (!beforeLift.current)
       beforeLift.current = Promise.resolve()
@@ -92,7 +114,7 @@ function Gate({ persistor, loading, onBeforeLift, children }: PersistGateProps):
     return () => {
       active = false
     }
-  }, [bootstrapped, onBeforeLift])
+  }, [open, bootstrapped, onBeforeLift])
 
   if (process.env.NODE_ENV !== 'production') {
     if (typeof children === 'function' && loading)
@@ -101,9 +123,9 @@ function Gate({ persistor, loading, onBeforeLift, children }: PersistGateProps):
       )
   }
   if (typeof children === 'function') {
-    return children(lifted.current)
+    return children(open)
   }
-  return lifted.current ? children : loading
+  return open ? children : loading
 }
 
 // PersistGate stays a class component: its generated types are accepted as a

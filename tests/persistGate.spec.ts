@@ -21,11 +21,12 @@ const createPersistor = (bootstrapped = false) => {
       return () => { listeners.delete(listener) }
     },
   } as unknown as Persistor
-  const bootstrap = () => {
-    state = { ...state, bootstrapped: true }
+  const setBootstrapped = (bootstrapped: boolean) => {
+    state = { ...state, bootstrapped }
     listeners.forEach(listener => listener())
   }
-  return { persistor, bootstrap, listenerCount: () => listeners.size }
+  const bootstrap = () => setBootstrapped(true)
+  return { persistor, bootstrap, setBootstrapped, listenerCount: () => listeners.size }
 }
 
 const gate = (props: Record<string, any>, children: ReactNode | ((b: boolean) => ReactNode)) =>
@@ -171,4 +172,38 @@ test.serial('useRehydrated re-renders when a new persistor bootstraps before the
   await act(async () => { renderer.update(createElement(Probe, { persistor: pending.persistor })) })
   t.true(pending.persistor.getState().bootstrapped)
   t.is(text(renderer), '"true"')
+})
+
+test.serial('stays lifted when the persistor reports loading again', async t => {
+  // persistReducers added later register and rehydrate one by one
+  const { persistor, bootstrap, setBootstrapped } = createPersistor()
+  const renderer = render(gate({ persistor, loading: 'loading' }, 'app'))
+  await act(async () => { bootstrap() })
+  t.is(text(renderer), '"app"')
+  await act(async () => { setBootstrapped(false) })
+  t.is(text(renderer), '"app"')
+  await act(async () => { bootstrap() })
+  t.is(text(renderer), '"app"')
+})
+
+test.serial('works with a persistor whose methods use this', async t => {
+  class ClassPersistor {
+    state = { registry: [] as string[], bootstrapped: false }
+    listeners: Array<() => void> = []
+    getState() { return this.state }
+    subscribe(listener: () => void) {
+      this.listeners.push(listener)
+      return () => { this.listeners = this.listeners.filter(l => l !== listener) }
+    }
+    bootstrap() {
+      this.state = { ...this.state, bootstrapped: true }
+      this.listeners.forEach(listener => listener())
+    }
+  }
+  const persistor = new ClassPersistor()
+  const Probe = () => String(useRehydrated(persistor as unknown as Persistor))
+  const renderer = render(createElement('div', null, gate({ persistor, loading: 'loading' }, 'app'), createElement(Probe)))
+  t.is(text(renderer), JSON.stringify({ type: 'div', props: {}, children: ['loading', 'false'] }))
+  await act(async () => { persistor.bootstrap() })
+  t.is(text(renderer), JSON.stringify({ type: 'div', props: {}, children: ['app', 'true'] }))
 })
