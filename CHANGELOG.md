@@ -13,6 +13,7 @@ and v7 writes the same format. See the [migration guide](docs/MigrationGuide-v7.
 
 ### Added
 - `allowlist` and `denylist`, checked against your state's keys (`whitelist` and `blacklist` still work)
+- `allowlist` and `denylist` also take a function of the key, for keys you can't list ahead of time: `denylist: key => key.startsWith('temp')` (#1283, #328)
 - `useRehydrated(persistor)` hook in `redux-persist/react`
 - Short import paths (`redux-persist/storage`, `redux-persist/react`, ...) and an `exports` map with native ES modules; all v6 paths keep working
 - Async migrations
