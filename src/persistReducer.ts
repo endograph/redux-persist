@@ -21,6 +21,7 @@ import type {
 import autoMergeLevel1 from './stateReconciler/autoMergeLevel1.js'
 import createPersistoid from './createPersistoid.js'
 import { getHandle } from './persistorHandle.js'
+import type { PersistorHandle } from './persistorHandle.js'
 import defaultGetStoredState from './getStoredState.js'
 import purgeStoredState from './purgeStoredState.js'
 
@@ -40,6 +41,8 @@ interface PersistedStore {
   // stored data with initial state (#809), so writes stay off until the
   // stored state is read or purged.
   readFailed: boolean
+  // the version it was persisted with, which a devtools replay keeps
+  version: number
 }
 const stores = new WeakMap<object, PersistedStore>()
 const storeFor = (persist: unknown): PersistedStore | undefined =>
@@ -48,6 +51,25 @@ const trackStore = <T extends object>(persist: T, store: PersistedStore): T => {
   stores.set(persist, store)
   return persist
 }
+
+// Redux DevTools recomputes state by replaying the original action objects,
+// handles included: after replaceReducer (hot reloading, injected reducers) or
+// when an action is toggled. A replay must not read or purge storage again
+// (#1387). Each persist key records the PERSIST, PURGE and FLUSH handles it
+// acted on, with the store it acted for; a handle that reaches persistReducer
+// after its dispatch returned, having reached it before, is being replayed.
+const handleUses = new WeakMap<PersistorHandle, Map<string, PersistedStore | undefined>>()
+const usesOf = (handle: PersistorHandle) => {
+  let uses = handleUses.get(handle)
+  if (!uses) handleUses.set(handle, (uses = new Map()))
+  return uses
+}
+// (a handle that never reached a persistReducer, delayed by a middleware for
+// example, is still acted on)
+const isReplay = (handle: PersistorHandle) => !!handle.dispatched && usesOf(handle).size > 0
+// REHYDRATE actions that were applied, so a replay applies them again even if
+// the store has been purged since
+const appliedRehydrates = new WeakSet<object>()
 
 const isObject = (value: unknown): value is Record<string, any> =>
   value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -109,9 +131,18 @@ export default function persistReducer<S, A extends Action = UnknownAction, P = 
   // identifies this persistReducer instance (see adoptStore)
   const owner = {}
   let warnedNonObjectState = false
-  // development warning for state that lost its _persist key (#659)
+  // development warning for state that lost its _persist key (#659). It waits
+  // a tick and is dropped if _persist comes back: a devtools recompute replays
+  // the actions from before PERSIST, which have no _persist either.
   let startedPersisting = false
   let warnedLostPersist = false
+  let lostPersistTimer: ReturnType<typeof setTimeout> | null = null
+  const cancelLostPersistWarning = () => {
+    if (lostPersistTimer) {
+      clearTimeout(lostPersistTimer)
+      lostPersistTimer = null
+    }
+  }
   const conditionalUpdate = (state: any) => {
     // update the persistoid only if we are rehydrated, not paused, and the
     // stored state was read
@@ -143,6 +174,7 @@ export default function persistReducer<S, A extends Action = UnknownAction, P = 
   return (state: any, action: any) => {
     const { _persist, ...rest } = state || {}
     const restState: S = rest
+    if (_persist) cancelLostPersistWarning()
     // undefined when this store hasn't been persisted (including state
     // preloaded from elsewhere, e.g. server rendering, that has a _persist key)
     const store = adoptStore(storeFor(_persist))
@@ -173,6 +205,30 @@ export default function persistReducer<S, A extends Action = UnknownAction, P = 
         return _persist ? state : baseReducer(state, action)
       }
       const { register, rehydrate } = handle
+      const uses = usesOf(handle)
+      const used = uses.get(config.key)
+      cancelLostPersistWarning()
+      if (isReplay(handle)) {
+        // A devtools replay: rebuild the state this PERSIST produced, without
+        // registering, reading storage or resuming writes. The store's flags
+        // (paused, purged) keep their current values.
+        if (store) return { ...baseReducer(restState, action), _persist }
+        // this persistReducer was added after the original PERSIST (without
+        // replaceReducer), so it isn't started by this one
+        if (!used) return _persist ? state : baseReducer(state, action)
+        // the PERSIST that created this store: the replayed REHYDRATE that
+        // follows restores what was read
+        adoptStore(used)
+        startedPersisting = true
+        return {
+          ...baseReducer(restState, action),
+          _persist: trackStore({ version: used.version, rehydrated: false }, used),
+        }
+      }
+      if (!store && used && process.env.NODE_ENV !== 'production')
+        console.error(
+          `redux-persist: more than one persistReducer uses the key "${config.key}". Give each its own key.`
+        )
       // a repeat PERSIST for this store reuses its state; otherwise start fresh
       const persisted: PersistedStore = store || {
         owner,
@@ -180,7 +236,9 @@ export default function persistReducer<S, A extends Action = UnknownAction, P = 
         purged: false,
         paused: true,
         readFailed: false,
+        version,
       }
+      uses.set(config.key, persisted)
       let _sealed = false
       let _timedOut = false
       let timer: ReturnType<typeof setTimeout> | undefined
@@ -294,7 +352,9 @@ export default function persistReducer<S, A extends Action = UnknownAction, P = 
       }
     } else if (action.type === PURGE) {
       const handle = getHandle(action)
-      if (handle && handle.result) {
+      // not again when devtools replays the PURGE
+      if (handle && handle.result && !isReplay(handle)) {
+        usesOf(handle).set(config.key, store)
         if (store) {
           store.purged = true
           // stored data is gone, so there is nothing left to protect
@@ -309,16 +369,25 @@ export default function persistReducer<S, A extends Action = UnknownAction, P = 
       }
     } else if (action.type === FLUSH) {
       const handle = getHandle(action)
-      if (handle && handle.result) handle.result(store && store.persistoid && store.persistoid.flush())
+      if (handle && handle.result && !isReplay(handle)) {
+        usesOf(handle).set(config.key, store)
+        handle.result(store && store.persistoid && store.persistoid.flush())
+      }
       return {
         ...baseReducer(restState, action),
         _persist,
       }
     } else if (action.type === PAUSE) {
-      if (store) store.paused = true
+      // a devtools replay of persistor.pause() leaves the store as it is now
+      const handle = getHandle(action)
+      if (store && !(handle && isReplay(handle))) {
+        if (handle) usesOf(handle).set(config.key, store)
+        store.paused = true
+      }
     } else if (action.type === REHYDRATE && store) {
-      // noop on restState if purging
-      if (store.purged)
+      // noop on restState if purging, unless devtools is replaying a REHYDRATE
+      // that was applied before the purge
+      if (store.purged && !appliedRehydrates.has(action))
         return {
           ...restState,
           _persist: trackStore({ ..._persist, rehydrated: true }, store),
@@ -338,6 +407,7 @@ export default function persistReducer<S, A extends Action = UnknownAction, P = 
           ...reconciledRest,
           _persist: trackStore({ ..._persist, rehydrated: true }, store),
         }
+        appliedRehydrates.add(action)
         return conditionalUpdate(newState)
       }
     }
@@ -352,12 +422,16 @@ export default function persistReducer<S, A extends Action = UnknownAction, P = 
         process.env.NODE_ENV !== 'production' &&
         startedPersisting &&
         !warnedLostPersist &&
+        !lostPersistTimer &&
         !(typeof action.type === 'string' && action.type.startsWith('@@redux/'))
       ) {
-        warnedLostPersist = true
-        console.error(
-          `redux-persist: state for "${config.key}" lost its _persist key, so it is no longer being saved and the previously stored state will be loaded on the next launch. This usually means the state was reset above persistReducer (for example on logout). Reset it inside the reducer you pass to persistReducer instead: https://github.com/endograph/redux-persist#resetting-state-on-logout`
-        )
+        lostPersistTimer = setTimeout(() => {
+          lostPersistTimer = null
+          warnedLostPersist = true
+          console.error(
+            `redux-persist: state for "${config.key}" lost its _persist key, so it is no longer being saved and the previously stored state will be loaded on the next launch. This usually means the state was reset above persistReducer (for example on logout). Reset it inside the reducer you pass to persistReducer instead: https://github.com/endograph/redux-persist#resetting-state-on-logout`
+          )
+        }, 0)
       }
       return baseReducer(state, action)
     }
