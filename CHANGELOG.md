@@ -27,6 +27,7 @@ and v7 writes the same format. See the [migration guide](docs/MigrationGuide-v7.
 - Persistence state (paused, purged, read failures) is per store
 - `PERSIST`, `PURGE` and `FLUSH` dispatched outside the persistor (for example a devtools import) are ignored instead of throwing or purging storage
 - Throttled writes are batched into one write per interval
+- When the reducer's state is frozen (Redux Toolkit / immer), the state `persistReducer` returns is frozen too, instead of its top level being mutable (#1298)
 
 ### Removed
 - The UMD build (`dist/redux-persist.js`, `dist/redux-persist.min.js`). Use a bundler or an ES module CDN; see the migration guide

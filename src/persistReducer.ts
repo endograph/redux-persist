@@ -74,6 +74,13 @@ const appliedRehydrates = new WeakSet<object>()
 const isObject = (value: unknown): value is Record<string, any> =>
   value !== null && typeof value === 'object' && !Array.isArray(value)
 
+// Adds _persist to the state the reducer returned. Redux Toolkit (immer)
+// freezes the state it produces, so keep the new top level frozen too (#1298).
+const withPersist = (state: any, _persist: any) => {
+  const result = { ...state, _persist }
+  return state !== null && typeof state === 'object' && Object.isFrozen(state) ? Object.freeze(result) : result
+}
+
 // When a parent persistReducer also stores a nested persisted reducer's
 // state, rehydrating the parent restores a deserialized copy of the child's
 // _persist. Put the child's live _persist back, so the child is still
@@ -212,7 +219,7 @@ export default function persistReducer<S, A extends Action = UnknownAction, P = 
         // A devtools replay: rebuild the state this PERSIST produced, without
         // registering, reading storage or resuming writes. The store's flags
         // (paused, purged) keep their current values.
-        if (store) return { ...baseReducer(restState, action), _persist }
+        if (store) return withPersist(baseReducer(restState, action), _persist)
         // this persistReducer was added after the original PERSIST (without
         // replaceReducer), so it isn't started by this one
         if (!used) return _persist ? state : baseReducer(state, action)
@@ -220,10 +227,10 @@ export default function persistReducer<S, A extends Action = UnknownAction, P = 
         // follows restores what was read
         adoptStore(used)
         startedPersisting = true
-        return {
-          ...baseReducer(restState, action),
-          _persist: trackStore({ version: used.version, rehydrated: false }, used),
-        }
+        return withPersist(
+          baseReducer(restState, action),
+          trackStore({ version: used.version, rehydrated: false }, used)
+        )
       }
       if (!store && used && process.env.NODE_ENV !== 'production')
         console.error(
@@ -313,10 +320,7 @@ export default function persistReducer<S, A extends Action = UnknownAction, P = 
         // We still need to call the base reducer because there might be nested
         // uses of persistReducer which need to be aware of the PERSIST action.
         // conditionalUpdate saves any changes made while paused.
-        return conditionalUpdate({
-          ...baseReducer(restState, action),
-          _persist,
-        })
+        return conditionalUpdate(withPersist(baseReducer(restState, action), _persist))
       }
 
       register(config.key)
@@ -346,10 +350,10 @@ export default function persistReducer<S, A extends Action = UnknownAction, P = 
         }
       )
 
-      return {
-        ...baseReducer(restState, action),
-        _persist: trackStore({ version, rehydrated: false }, persisted),
-      }
+      return withPersist(
+        baseReducer(restState, action),
+        trackStore({ version, rehydrated: false }, persisted)
+      )
     } else if (action.type === PURGE) {
       const handle = getHandle(action)
       // not again when devtools replays the PURGE
@@ -363,20 +367,14 @@ export default function persistReducer<S, A extends Action = UnknownAction, P = 
         // purge storage even if this store hasn't started persisting yet
         handle.result(purgeStoredState(config))
       }
-      return {
-        ...baseReducer(restState, action),
-        _persist,
-      }
+      return withPersist(baseReducer(restState, action), _persist)
     } else if (action.type === FLUSH) {
       const handle = getHandle(action)
       if (handle && handle.result && !isReplay(handle)) {
         usesOf(handle).set(config.key, store)
         handle.result(store && store.persistoid && store.persistoid.flush())
       }
-      return {
-        ...baseReducer(restState, action),
-        _persist,
-      }
+      return withPersist(baseReducer(restState, action), _persist)
     } else if (action.type === PAUSE) {
       // a devtools replay of persistor.pause() leaves the store as it is now
       const handle = getHandle(action)
@@ -404,10 +402,10 @@ export default function persistReducer<S, A extends Action = UnknownAction, P = 
           ? keepNestedPersist(stateReconciler(inboundState, state, reducedState, config), reducedState)
           : reducedState
 
-      const newState = {
-        ...reconciledRest,
-        _persist: trackStore({ ..._persist, rehydrated: true }, store),
-      }
+      const newState = withPersist(
+        reconciledRest,
+        trackStore({ ..._persist, rehydrated: true }, store)
+      )
       appliedRehydrates.add(action)
       return conditionalUpdate(newState)
     }
@@ -440,6 +438,6 @@ export default function persistReducer<S, A extends Action = UnknownAction, P = 
     // is state modified ? return original : return updated
     const newState = baseReducer(restState, action)
     if (newState === restState) return state
-    return conditionalUpdate({ ...newState, _persist })
+    return conditionalUpdate(withPersist(newState, _persist))
   }
 }
