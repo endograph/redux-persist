@@ -183,6 +183,7 @@ happens.
 - [Migrations](docs/migrations.md) — upgrading stored state between versions
 - [Transforms](docs/transforms.md) — customizing what's serialized, and community transforms
 - [Storage engines](docs/storage-engines.md) — built-in and community storage backends
+- [Recipes](docs/recipes.md) — loading state later, state per user, syncing tabs, knowing when state was saved, encryption
 - [Hot module replacement](docs/hot-module-replacement.md)
 - [Migrating from v6 to v7](docs/MigrationGuide-v7.md)
 - [Storage format](docs/storage-format.md) — what's stored, and the compatibility promise

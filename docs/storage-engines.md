@@ -7,6 +7,14 @@
 Both store nothing during server rendering (no `window`), and stored state is loaded in the browser. If the browser blocks storage (for example in some privacy modes), a warning is logged in development and state isn't persisted.
 - **custom** any conforming storage api implementing the following methods: `setItem` `getItem` `removeItem`. Each can return a promise or a plain value, so a synchronous storage engine works as is.
 
+## Large state
+Each write saves everything its `persistReducer` stores under one storage key, encoded as JSON (each top-level key, then the whole object again). With a lot of state, that takes time and memory on every write. To keep writes small:
+
+- Save only what you need, with [`allowlist` / `denylist`](../README.md#choosing-whats-saved). Changes to keys that aren't saved don't cause a write.
+- Give big, independent parts of the state their own [nested](nested-persists.md) `persistReducer`. Each saves under its own key, so a change only rewrites its own part.
+- Set `throttle` (in ms) to write at most once per interval when state changes often.
+- On React Native, check your storage engine's size limits; for a lot of data, use one that writes to files (see below).
+
 ## Community
 These packages are maintained by third parties, not by redux-persist. We don't review or vouch for them, so check that a package is maintained and trustworthy before you depend on it.
 

@@ -28,3 +28,27 @@ const persistConfig = {
 }
 ```
 
+### Custom reconcilers
+A state reconciler is a function `(inboundState, originalState, reducedState, config) => state`. `inboundState` is what was stored, `reducedState` is your reducers' state after handling `REHYDRATE`, and what it returns becomes the state. For example, to merge stored state in at every level:
+
+```js
+const isPlainObject = value => value !== null && typeof value === 'object' && !Array.isArray(value)
+const mergeDeep = (target, source) => {
+  const result = { ...target }
+  for (const key of Object.keys(source)) {
+    result[key] = isPlainObject(target[key]) && isPlainObject(source[key])
+      ? mergeDeep(target[key], source[key])
+      : source[key]
+  }
+  return result
+}
+
+const persistConfig = {
+  key: 'root',
+  storage,
+  stateReconciler: (inboundState, originalState, reducedState) => mergeDeep(reducedState, inboundState),
+}
+```
+
+Arrays are replaced, not merged, and unlike `autoMergeLevel1` and `autoMergeLevel2` this doesn't skip state your reducers changed while handling `REHYDRATE`. To store only part of a top-level key, use a [nested persist](nested-persists.md) instead.
+
