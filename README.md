@@ -25,7 +25,7 @@ changes and restored into the store when your app starts.
 > setup, a fix for stored data getting wiped
 > ([#809](https://github.com/endograph/redux-persist/issues/809)), and lots
 > more. Please try it and tell us how it goes in
-> [#1486](https://github.com/endograph/redux-persist/issues/1486).
+> [the v7 beta discussion](https://github.com/endograph/redux-persist/discussions/1527).
 >
 > These docs are for v7, which needs Redux 5 or Redux Toolkit 2. Upgrading
 > from 6? Read the [migration guide](docs/MigrationGuide-v7.md); your stored
@@ -191,6 +191,7 @@ happens.
 
 ## Contributing
 
-Issues and pull requests are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md),
-especially before changing anything that touches stored data. Feedback on the
-v7 beta goes in [#1486](https://github.com/endograph/redux-persist/issues/1486).
+Bug reports and pull requests are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md),
+especially before changing anything that touches stored data. Questions and
+feature ideas go in [Discussions](https://github.com/endograph/redux-persist/discussions).
+Feedback on the v7 beta goes in [the v7 beta discussion](https://github.com/endograph/redux-persist/discussions/1527).

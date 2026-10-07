@@ -1,7 +1,7 @@
 # Contributing
 
-Issues and pull requests are welcome. Triage is ongoing in
-[#1486](https://github.com/endograph/redux-persist/issues/1486).
+Bug reports and pull requests are welcome. For questions and feature ideas,
+use [Discussions](https://github.com/endograph/redux-persist/discussions).
 
 ```sh
 npm ci
