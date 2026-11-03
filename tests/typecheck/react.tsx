@@ -1,4 +1,4 @@
-// Compile-time checks for the React integration (type-checked by npm test).
+// Compile-time checks for the React integration (type-checked by bun run test).
 import { PersistGate, useRehydrated } from '../../src/integration/react'
 import type { Persistor } from '../../src'
 

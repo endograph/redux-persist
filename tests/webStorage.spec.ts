@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // redux-persist/lib/storage on the server, in the browser, and in browsers
-// where storage is blocked. Serial: these swap globalThis.window.
-import test from 'ava'
+// where storage is blocked. These swap globalThis.window, so they must not run
+// concurrently.
+import { expect, test } from 'vitest'
 
 import createWebStorage from '../src/storage/createWebStorage'
 
@@ -36,22 +37,22 @@ const captureConsole = () => {
   return { calls, restore: () => { console.warn = warn; console.error = error } }
 }
 
-test.serial('on the server it silently stores nothing', async t => {
+test('on the server it silently stores nothing', async () => {
   const { calls, restore } = captureConsole()
   try {
     await withWindow(undefined, async () => {
       const storage = createWebStorage('local')
       await storage.setItem('persist:root', '{}')
-      t.is(await storage.getItem('persist:root'), undefined)
+      expect(await storage.getItem('persist:root')).toBeUndefined()
       await storage.removeItem('persist:root')
     })
   } finally {
     restore()
   }
-  t.deepEqual(calls, [])
+  expect(calls).toStrictEqual([])
 })
 
-test.serial('on the server it ignores a global localStorage (Node 25+)', async t => {
+test('on the server it ignores a global localStorage (Node 25+)', async () => {
   const serverWide = createLocalStorage()
   g.localStorage = serverWide
   try {
@@ -61,34 +62,34 @@ test.serial('on the server it ignores a global localStorage (Node 25+)', async t
   } finally {
     delete g.localStorage
   }
-  t.deepEqual(serverWide.data, {})
+  expect(serverWide.data).toStrictEqual({})
 })
 
-test.serial('in the browser it uses window.localStorage and window.sessionStorage', async t => {
+test('in the browser it uses window.localStorage and window.sessionStorage', async () => {
   const localStorage = createLocalStorage()
   const sessionStorage = createLocalStorage()
   await withWindow({ localStorage, sessionStorage }, async () => {
     await createWebStorage('local').setItem('persist:root', 'L')
     await createWebStorage('session').setItem('persist:root', 'S')
-    t.is(await createWebStorage('local').getItem('persist:root'), 'L')
+    expect(await createWebStorage('local').getItem('persist:root')).toBe('L')
   })
-  t.deepEqual(localStorage.data, { 'persist:root': 'L' })
-  t.deepEqual(sessionStorage.data, { 'persist:root': 'S' })
+  expect(localStorage.data).toStrictEqual({ 'persist:root': 'L' })
+  expect(sessionStorage.data).toStrictEqual({ 'persist:root': 'S' })
 })
 
-test.serial('it does not touch storage until first used', async t => {
+test('it does not touch storage until first used', async () => {
   let accessed = 0
   const win = { get localStorage() { accessed++; return createLocalStorage() } }
   await withWindow(win, async () => {
     const storage = createWebStorage('local')
-    t.is(accessed, 0)
+    expect(accessed).toBe(0)
     await storage.getItem('persist:root')
     await storage.getItem('persist:root')
-    t.is(accessed, 1)
+    expect(accessed).toBe(1)
   })
 })
 
-test.serial('when the browser blocks storage it warns once and stores nothing', async t => {
+test('when the browser blocks storage it warns once and stores nothing', async () => {
   const blocked = {
     getItem: () => { throw new Error('SecurityError') },
     setItem: () => { throw new Error('SecurityError') },
@@ -99,11 +100,11 @@ test.serial('when the browser blocks storage it warns once and stores nothing', 
     await withWindow({ localStorage: blocked }, async () => {
       const storage = createWebStorage('local')
       await storage.setItem('persist:root', '{}')
-      t.is(await storage.getItem('persist:root'), undefined)
+      expect(await storage.getItem('persist:root')).toBeUndefined()
     })
   } finally {
     restore()
   }
-  t.is(calls.length, 1)
-  t.regex(calls[0], /^warn: redux-persist: localStorage is not available/)
+  expect(calls).toHaveLength(1)
+  expect(calls[0]).toMatch(/^warn: redux-persist: localStorage is not available/)
 })

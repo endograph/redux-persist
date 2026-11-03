@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import test from 'ava'
+import { expect, test } from 'vitest'
 import { createStore } from 'redux'
 
 import getStoredState from '../src/getStoredState'
@@ -35,19 +35,17 @@ const config = {
   throttle: 1000,
 }
 
-test('state before flush is not updated, after flush is', t => {
-  return new Promise<void>((resolve) => {
-    const rootReducer = persistReducer(config, reducer)
-    const store = createStore(rootReducer)
-    const persistor = persistStore(store, {}, async () => {
-      store.dispatch({ type: INCREMENT })
-      const state = store.getState()
-      const storedPreFlush = await getStoredState(config)
-      t.not(storedPreFlush && storedPreFlush.c, state.c)
-      await persistor.flush()
-      const storedPostFlush = await getStoredState(config)
-      t.is(storedPostFlush && storedPostFlush.c, state.c)
-      resolve()
-    })
+test('state before flush is not updated, after flush is', async () => {
+  const rootReducer = persistReducer(config, reducer)
+  const store = createStore(rootReducer)
+  const persistor = await new Promise<ReturnType<typeof persistStore>>(resolve => {
+    const persistor = persistStore(store, {}, () => resolve(persistor))
   })
+  store.dispatch({ type: INCREMENT })
+  const state = store.getState()
+  const storedPreFlush = await getStoredState(config)
+  expect(storedPreFlush && storedPreFlush.c).not.toBe(state.c)
+  await persistor.flush()
+  const storedPostFlush = await getStoredState(config)
+  expect(storedPostFlush && storedPostFlush.c).toBe(state.c)
 })

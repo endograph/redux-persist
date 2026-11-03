@@ -20,16 +20,19 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
       - name: Verify tag matches package version
         run: node -e 'if (process.env.GITHUB_REF_NAME !== "v" + require("./package.json").version) process.exit(1)'
       - name: Install dependencies
-        run: npm ci --ignore-scripts
+        run: bun install --frozen-lockfile --ignore-scripts
       - name: Lint, build, and test
         run: |
-          npm run lint
-          npm run build
-          npm test
-          npm run check:package
+          bun run lint
+          bun run build
+          bun run test
+          bun run check:package
       - name: Use npm with trusted publishing support
         run: npm install -g npm@11.21.1
       - name: Choose npm dist-tag
@@ -37,5 +40,6 @@ jobs:
         # prereleases (7.0.0-beta.0) go to "next" so they never become the default install
         run: |
           node -e 'const v = require("./package.json").version; console.log("tag=" + (v.includes("-") ? "next" : "latest"))' >> "$GITHUB_OUTPUT"
+      # npm, not bun publish, for trusted publishing and provenance
       - name: Publish
         run: npm publish --provenance --access public --ignore-scripts --tag "${{ steps.dist-tag.outputs.tag }}"

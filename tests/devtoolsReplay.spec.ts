@@ -3,7 +3,7 @@
 // objects, after replaceReducer (hot reloading, injected reducers) or when an
 // action is toggled. A replay must rebuild the same state without reading or
 // purging storage again.
-import test from 'ava'
+import { expect, test } from 'vitest'
 import { combineReducers } from 'redux'
 import type { Reducer } from 'redux'
 
@@ -71,13 +71,13 @@ const storedValue = (storage: ReturnType<typeof createStorage>, key: string, fie
 const reducer = (state: any = { lastAccess: null }, action: any) =>
   action.type === 'visit' ? { ...state, lastAccess: action.at } : state
 
-test('a replay after replaceReducer keeps newer state and does not read storage again', async t => {
+test('a replay after replaceReducer keeps newer state and does not read storage again', async () => {
   const storage = createStorage({ 'persist:root': { lastAccess: 'old', _persist: PERSIST_STATE } })
   const config = { key: 'root', storage }
   const store = createDevtoolsStore(persistReducer(config, reducer))
   const persistor = persistStore(store as any)
   await sleep(10)
-  t.is(store.getState().lastAccess, 'old')
+  expect(store.getState().lastAccess).toBe('old')
 
   // a change, then a reducer injected in the same tick (hot reloading
   // replaces the reducer the same way)
@@ -85,19 +85,19 @@ test('a replay after replaceReducer keeps newer state and does not read storage 
   store.replaceReducer(persistReducer(config, reducer))
   await sleep(10)
 
-  t.is(store.getState().lastAccess, 'new')
-  t.true(store.getState()._persist.rehydrated)
-  t.is(storedValue(storage, 'persist:root', 'lastAccess'), 'new')
-  t.is(storage.calls.getItem, 1)
-  t.true(persistor.getState().bootstrapped)
+  expect(store.getState().lastAccess).toBe('new')
+  expect(store.getState()._persist.rehydrated).toBe(true)
+  expect(storedValue(storage, 'persist:root', 'lastAccess')).toBe('new')
+  expect(storage.calls.getItem).toBe(1)
+  expect(persistor.getState().bootstrapped).toBe(true)
 
   // and it keeps saving
   store.dispatch({ type: 'visit', at: 'later' })
   await persistor.flush()
-  t.is(storedValue(storage, 'persist:root', 'lastAccess'), 'later')
+  expect(storedValue(storage, 'persist:root', 'lastAccess')).toBe('later')
 })
 
-test('a replay does not purge storage again', async t => {
+test('a replay does not purge storage again', async () => {
   const storage = createStorage()
   const config = { key: 'root', storage }
   const store = createDevtoolsStore(persistReducer(config, reducer))
@@ -108,12 +108,12 @@ test('a replay does not purge storage again', async t => {
   await persistor.flush()
 
   store.replaceReducer(persistReducer(config, reducer))
-  t.is(storage.calls.removeItem, 1)
+  expect(storage.calls.removeItem).toBe(1)
   await sleep(10)
-  t.is(storedValue(storage, 'persist:root', 'lastAccess'), 'after purge')
+  expect(storedValue(storage, 'persist:root', 'lastAccess')).toBe('after purge')
 })
 
-test('a replay keeps state that was rehydrated before a purge', async t => {
+test('a replay keeps state that was rehydrated before a purge', async () => {
   const storage = createStorage({ 'persist:root': { lastAccess: 'old', _persist: PERSIST_STATE } })
   const config = { key: 'root', storage }
   const store = createDevtoolsStore(persistReducer(config, reducer))
@@ -122,11 +122,11 @@ test('a replay keeps state that was rehydrated before a purge', async t => {
   await persistor.purge()
 
   store.replaceReducer(persistReducer(config, reducer))
-  t.is(store.getState().lastAccess, 'old')
-  t.true(store.getState()._persist.rehydrated)
+  expect(store.getState().lastAccess).toBe('old')
+  expect(store.getState()._persist.rehydrated).toBe(true)
 })
 
-test('a replay does not read nested persisted reducers again', async t => {
+test('a replay does not read nested persisted reducers again', async () => {
   const storage = createStorage({
     'persist:root': { other: { lastAccess: 'root' }, _persist: PERSIST_STATE },
     'persist:auth': { lastAccess: 'auth', _persist: PERSIST_STATE },
@@ -139,18 +139,18 @@ test('a replay does not read nested persisted reducers again', async t => {
   const store = createDevtoolsStore(createReducer())
   persistStore(store as any)
   await sleep(10)
-  t.is(storage.calls.getItem, 2)
+  expect(storage.calls.getItem).toBe(2)
 
   store.dispatch({ type: 'visit', at: 'new' })
   store.replaceReducer(createReducer())
   await sleep(10)
-  t.is(storage.calls.getItem, 2)
-  t.is(store.getState().auth.lastAccess, 'new')
-  t.is(store.getState().other.lastAccess, 'new')
-  t.is(storedValue(storage, 'persist:auth', 'lastAccess'), 'new')
+  expect(storage.calls.getItem).toBe(2)
+  expect(store.getState().auth.lastAccess).toBe('new')
+  expect(store.getState().other.lastAccess).toBe('new')
+  expect(storedValue(storage, 'persist:auth', 'lastAccess')).toBe('new')
 })
 
-test.serial('recomputing does not warn that _persist was lost, with actions from before PERSIST', async t => {
+test('recomputing does not warn that _persist was lost, with actions from before PERSIST', async () => {
   const errors: any[] = []
   const original = console.error
   console.error = (...args: any[]) => { errors.push(args) }
@@ -166,15 +166,15 @@ test.serial('recomputing does not warn that _persist was lost, with actions from
     store.recompute()
     store.replaceReducer(persistReducer({ key: 'root', storage }, reducer))
     await sleep(10)
-    t.is(store.getState().lastAccess, 'new')
-    t.is(storage.calls.getItem, 1)
+    expect(store.getState().lastAccess).toBe('new')
+    expect(storage.calls.getItem).toBe(1)
   } finally {
     console.error = original
   }
-  t.deepEqual(errors, [])
+  expect(errors).toStrictEqual([])
 })
 
-test('a replay after pause and purge does not write the purged state back', async t => {
+test('a replay after pause and purge does not write the purged state back', async () => {
   const storage = createStorage({ 'persist:root': { lastAccess: 'old', _persist: PERSIST_STATE } })
   const config = { key: 'root', storage }
   const store = createDevtoolsStore(persistReducer(config, reducer))
@@ -190,11 +190,11 @@ test('a replay after pause and purge does not write the purged state back', asyn
 
   store.replaceReducer(persistReducer(config, reducer))
   await sleep(10)
-  t.false('persist:root' in storage.data)
-  t.is(storage.calls.removeItem, 1)
+  expect('persist:root' in storage.data).toBe(false)
+  expect(storage.calls.removeItem).toBe(1)
 })
 
-test('a replay keeps saving when the history paused and then resumed', async t => {
+test('a replay keeps saving when the history paused and then resumed', async () => {
   const storage = createStorage({ 'persist:root': { lastAccess: 'old', _persist: PERSIST_STATE } })
   const config = { key: 'root', storage }
   const store = createDevtoolsStore(persistReducer(config, reducer))
@@ -206,10 +206,10 @@ test('a replay keeps saving when the history paused and then resumed', async t =
   store.replaceReducer(persistReducer(config, reducer))
   store.dispatch({ type: 'visit', at: 'after replay' })
   await persistor.flush()
-  t.is(storedValue(storage, 'persist:root', 'lastAccess'), 'after replay')
+  expect(storedValue(storage, 'persist:root', 'lastAccess')).toBe('after replay')
 })
 
-test('a replay keeps the version state was stored with when the new reducer has a newer one', async t => {
+test('a replay keeps the version state was stored with when the new reducer has a newer one', async () => {
   const storage = createStorage({ 'persist:root': { lastAccess: 'old', _persist: { version: 1, rehydrated: true } } })
   const store = createDevtoolsStore(persistReducer({ key: 'root', storage, version: 1 }, reducer))
   const persistor = persistStore(store as any)
@@ -220,12 +220,12 @@ test('a replay keeps the version state was stored with when the new reducer has 
   store.replaceReducer(persistReducer({ key: 'root', storage, version: 2, migrate }, reducer))
   store.dispatch({ type: 'visit', at: 'new' })
   await persistor.flush()
-  t.is(storedValue(storage, 'persist:root', 'lastAccess'), 'new')
-  t.is(store.getState()._persist.version, 1)
-  t.is(storedValue(storage, 'persist:root', '_persist').version, 1)
+  expect(storedValue(storage, 'persist:root', 'lastAccess')).toBe('new')
+  expect(store.getState()._persist.version).toBe(1)
+  expect(storedValue(storage, 'persist:root', '_persist').version).toBe(1)
 })
 
-test('a replay does not read a persistReducer added without replaceReducer again', async t => {
+test('a replay does not read a persistReducer added without replaceReducer again', async () => {
   const storage = createStorage({ 'persist:notes': { items: ['stored'], _persist: PERSIST_STATE } })
   const items = (state: any = { items: [] }, action: any) =>
     action.type === 'add' ? { ...state, items: [...state.items, action.item] } : state
@@ -248,12 +248,12 @@ test('a replay does not read a persistReducer added without replaceReducer again
 
   store.recompute()
   await sleep(10)
-  t.deepEqual(store.getState().notes.items, ['stored', 'new'])
-  t.is(storage.calls.getItem, reads)
-  t.deepEqual(storedValue(storage, 'persist:notes', 'items'), ['stored', 'new'])
+  expect(store.getState().notes.items).toStrictEqual(['stored', 'new'])
+  expect(storage.calls.getItem).toBe(reads)
+  expect(storedValue(storage, 'persist:notes', 'items')).toStrictEqual(['stored', 'new'])
 })
 
-test.serial('two persistReducers with the same key both read and purge, with a warning', async t => {
+test('two persistReducers with the same key both read and purge, with a warning', async () => {
   const errors: string[] = []
   const original = console.error
   console.error = (...args: any[]) => { errors.push(String(args[0])) }
@@ -268,12 +268,12 @@ test.serial('two persistReducers with the same key both read and purge, with a w
     }))
     const persistor = persistStore(store as any)
     await sleep(10)
-    t.is(storage.calls.getItem, 2)
+    expect(storage.calls.getItem).toBe(2)
     await persistor.purge()
-    t.false('a:settings' in storage.data)
-    t.false('b:settings' in storage.data)
+    expect('a:settings' in storage.data).toBe(false)
+    expect('b:settings' in storage.data).toBe(false)
   } finally {
     console.error = original
   }
-  t.true(errors.some(e => e.includes('more than one persistReducer uses the key "settings"')))
+  expect(errors.some(e => e.includes('more than one persistReducer uses the key "settings"'))).toBe(true)
 })

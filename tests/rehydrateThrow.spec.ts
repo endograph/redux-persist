@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // #719: a reducer that throws while handling REHYDRATE must not leave the app
 // unbootstrapped, dispatch a bogus timeout, or overwrite stored data.
-import test from 'ava'
+import { expect, test } from 'vitest'
 import { applyMiddleware, legacy_createStore as createStore } from 'redux'
 
 import { persistReducer, persistStore, REHYDRATE } from '../src'
@@ -41,31 +41,31 @@ const setup = (storage: ReturnType<typeof createStorage>) => {
   return { store, persistor, rehydrates, errors, isBootstrapped: () => bootstrapped, restore: () => { console.error = original } }
 }
 
-test.serial('the app still bootstraps when a reducer throws on REHYDRATE', async t => {
+test('the app still bootstraps when a reducer throws on REHYDRATE', async () => {
   const { persistor, isBootstrapped, restore } = setup(createStorage())
   await sleep(20)
   restore()
-  t.true(persistor.getState().bootstrapped)
-  t.true(isBootstrapped())
+  expect(persistor.getState().bootstrapped).toBe(true)
+  expect(isBootstrapped()).toBe(true)
 })
 
-test.serial('no misleading timeout REHYDRATE follows', async t => {
+test('no misleading timeout REHYDRATE follows', async () => {
   const { rehydrates, restore } = setup(createStorage())
   await sleep(200) // past the 100ms timeout
   restore()
-  t.is(rehydrates.length, 1)
-  t.is(rehydrates[0].err, undefined)
+  expect(rehydrates).toHaveLength(1)
+  expect(rehydrates[0].err).toBeUndefined()
 })
 
-test.serial('stored data is not overwritten, and the error is reported', async t => {
+test('stored data is not overwritten, and the error is reported', async () => {
   const storage = createStorage()
   const { store, persistor, errors, restore } = setup(storage)
   await sleep(20)
   store.dispatch({ type: 'SET', count: 1 })
   await persistor.flush()
   restore()
-  t.is(storage.data['persist:root'], STORED)
+  expect(storage.data['persist:root']).toBe(STORED)
   const reported = errors.find(args => String(args[0]).includes('threw while handling REHYDRATE'))
-  t.truthy(reported)
-  t.is(reported && reported[1] && reported[1].message, 'reducer bug')
+  expect(reported).toBeTruthy()
+  expect(reported && reported[1] && reported[1].message).toBe('reducer bug')
 })

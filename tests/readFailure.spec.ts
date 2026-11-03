@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // #809: when reading stored state fails or times out, the stored data must not
 // be overwritten with initial state.
-import test from 'ava'
+import { expect, test } from 'vitest'
 import { legacy_createStore as createStore } from 'redux'
 
 import { createMigrate, persistReducer, persistStore } from '../src'
@@ -45,59 +45,59 @@ const run = async (config: Record<string, any>, waitMs = 50) => {
   return { store, persistor }
 }
 
-test.serial('a failed read does not overwrite stored data', async t => {
+test('a failed read does not overwrite stored data', async () => {
   const storage = createStorage({ getItem: () => Promise.reject(new Error('read failed')) })
   await quietly(() => run({ storage }).then(() => {}))
-  t.is(storage.data['persist:root'], STORED)
+  expect(storage.data['persist:root']).toBe(STORED)
 })
 
-test.serial('unparseable stored data is not overwritten', async t => {
+test('unparseable stored data is not overwritten', async () => {
   const storage = createStorage()
   storage.data['persist:root'] = '{not json'
   await quietly(() => run({ storage }).then(() => {}))
-  t.is(storage.data['persist:root'], '{not json')
+  expect(storage.data['persist:root']).toBe('{not json')
 })
 
-test.serial('a failed migration does not overwrite stored data', async t => {
+test('a failed migration does not overwrite stored data', async () => {
   const storage = createStorage()
   const migrate = createMigrate({ 0: () => { throw new Error('migration bug') } })
   await quietly(() => run({ storage, version: 0, migrate }).then(() => {}))
-  t.is(storage.data['persist:root'], STORED)
+  expect(storage.data['persist:root']).toBe(STORED)
 })
 
-test.serial('a read slower than the timeout does not overwrite stored data, and is applied when it arrives', async t => {
+test('a read slower than the timeout does not overwrite stored data, and is applied when it arrives', async () => {
   const storage = createStorage()
   const slowStorage = { ...storage, getItem: (key: string) => sleep(150).then(() => storage.getItem(key)) }
   await quietly(async () => {
     const { store, persistor } = await run({ storage: slowStorage, timeout: 50 }, 80)
     // timed out: the app started with initial state, and nothing was written
-    t.is(storage.data['persist:root'], STORED)
+    expect(storage.data['persist:root']).toBe(STORED)
 
     // the read finishes: stored state wins over changes made before it arrived
     await sleep(150)
-    t.deepEqual(store.getState().notes, ['saved note'])
+    expect(store.getState().notes).toStrictEqual(['saved note'])
 
     // and writes resume
     store.dispatch({ type: 'ADD', note: 'after load' })
     await persistor.flush()
-    t.deepEqual(JSON.parse(JSON.parse(storage.data['persist:root']).notes), ['saved note', 'after load'])
+    expect(JSON.parse(JSON.parse(storage.data['persist:root']).notes)).toStrictEqual(['saved note', 'after load'])
   })
 })
 
-test.serial('purge() discards unreadable data and resumes writes', async t => {
+test('purge() discards unreadable data and resumes writes', async () => {
   const storage = createStorage()
   storage.data['persist:root'] = '{not json'
   await quietly(async () => {
     const { store, persistor } = await run({ storage })
-    t.is(storage.data['persist:root'], '{not json')
+    expect(storage.data['persist:root']).toBe('{not json')
     await persistor.purge()
     store.dispatch({ type: 'ADD', note: 'fresh start' })
     await persistor.flush()
   })
-  t.deepEqual(JSON.parse(JSON.parse(storage.data['persist:root']).notes), ['new note', 'fresh start'])
+  expect(JSON.parse(JSON.parse(storage.data['persist:root']).notes)).toStrictEqual(['new note', 'fresh start'])
 })
 
-test.serial('the app still bootstraps when the read fails', async t => {
+test('the app still bootstraps when the read fails', async () => {
   const storage = createStorage({ getItem: () => Promise.reject(new Error('read failed')) })
   let bootstrapped = false
   await quietly(async () => {
@@ -105,5 +105,5 @@ test.serial('the app still bootstraps when the read fails', async t => {
     persistStore(store, null, () => { bootstrapped = true })
     await sleep(20)
   })
-  t.true(bootstrapped)
+  expect(bootstrapped).toBe(true)
 })

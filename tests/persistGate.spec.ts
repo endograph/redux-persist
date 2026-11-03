@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import test from 'ava'
+import { expect, test } from 'vitest'
 import { createElement, StrictMode, useLayoutEffect } from 'react'
 import type { ReactNode } from 'react'
 import { act, create } from 'react-test-renderer'
@@ -42,91 +42,91 @@ const text = (renderer: ReactTestRenderer) => JSON.stringify(renderer.toJSON())
 
 const tick = () => new Promise(resolve => setTimeout(resolve, 0))
 
-test.serial('renders loading until bootstrapped, then children', async t => {
+test('renders loading until bootstrapped, then children', async () => {
   const { persistor, bootstrap } = createPersistor()
   const renderer = render(gate({ persistor, loading: 'loading' }, 'app'))
-  t.is(text(renderer), '"loading"')
+  expect(text(renderer)).toBe('"loading"')
   await act(async () => { bootstrap() })
-  t.is(text(renderer), '"app"')
+  expect(text(renderer)).toBe('"app"')
 })
 
-test.serial('renders children on the first render when already bootstrapped (#1070)', t => {
+test('renders children on the first render when already bootstrapped (#1070)', () => {
   const { persistor } = createPersistor(true)
   const renders: string[] = []
   const App = () => { renders.push('app'); return 'app' }
   const Loading = () => { renders.push('loading'); return 'loading' }
   render(gate({ persistor, loading: createElement(Loading) }, createElement(App)))
-  t.deepEqual(renders, ['app'])
+  expect(renders).toStrictEqual(['app'])
 })
 
-test.serial('calls a function child with the bootstrapped state', async t => {
+test('calls a function child with the bootstrapped state', async () => {
   const { persistor, bootstrap } = createPersistor()
   const calls: boolean[] = []
   const renderer = render(gate({ persistor }, (bootstrapped: boolean) => { calls.push(bootstrapped); return bootstrapped ? 'app' : 'splash' }))
-  t.is(text(renderer), '"splash"')
+  expect(text(renderer)).toBe('"splash"')
   await act(async () => { bootstrap() })
-  t.is(text(renderer), '"app"')
-  t.deepEqual([calls[0], calls[calls.length - 1]], [false, true])
+  expect(text(renderer)).toBe('"app"')
+  expect([calls[0], calls[calls.length - 1]]).toStrictEqual([false, true])
 })
 
-test.serial('waits for onBeforeLift before lifting, and calls it once', async t => {
+test('waits for onBeforeLift before lifting, and calls it once', async () => {
   const { persistor, bootstrap } = createPersistor()
   let resolveLift: () => void = () => {}
   let calls = 0
   const onBeforeLift = () => { calls++; return new Promise<void>(resolve => { resolveLift = resolve }) }
   const renderer = render(gate({ persistor, loading: 'loading', onBeforeLift }, 'app'))
   await act(async () => { bootstrap(); await tick() })
-  t.is(text(renderer), '"loading"')
+  expect(text(renderer)).toBe('"loading"')
   await act(async () => { resolveLift(); await tick() })
-  t.is(text(renderer), '"app"')
-  t.is(calls, 1)
+  expect(text(renderer)).toBe('"app"')
+  expect(calls).toBe(1)
 })
 
-test.serial('calls onBeforeLift once in StrictMode when already bootstrapped at mount', async t => {
+test('calls onBeforeLift once in StrictMode when already bootstrapped at mount', async () => {
   const { persistor } = createPersistor(true)
   let calls = 0
   const renderer = render(createElement(StrictMode, null, gate({ persistor, loading: 'loading', onBeforeLift: () => { calls++ } }, 'app')))
   await act(async () => { await tick() })
-  t.is(text(renderer), '"app"')
-  t.is(calls, 1)
+  expect(text(renderer)).toBe('"app"')
+  expect(calls).toBe(1)
 })
 
-test.serial('calls onBeforeLift once in StrictMode', async t => {
+test('calls onBeforeLift once in StrictMode', async () => {
   const { persistor, bootstrap } = createPersistor()
   let calls = 0
   const renderer = render(createElement(StrictMode, null, gate({ persistor, loading: 'loading', onBeforeLift: () => { calls++ } }, 'app')))
   await act(async () => { bootstrap(); await tick() })
-  t.is(text(renderer), '"app"')
-  t.is(calls, 1)
+  expect(text(renderer)).toBe('"app"')
+  expect(calls).toBe(1)
 })
 
-test.serial('lifts even if onBeforeLift rejects', async t => {
+test('lifts even if onBeforeLift rejects', async () => {
   const { persistor, bootstrap } = createPersistor()
   const renderer = render(gate({ persistor, loading: 'loading', onBeforeLift: () => Promise.reject(new Error('nope')) }, 'app'))
   await act(async () => { bootstrap(); await tick() })
-  t.is(text(renderer), '"app"')
+  expect(text(renderer)).toBe('"app"')
 })
 
-test.serial('unsubscribes on unmount', t => {
+test('unsubscribes on unmount', () => {
   const { persistor, listenerCount } = createPersistor()
   const renderer = render(gate({ persistor, loading: 'loading' }, 'app'))
-  t.is(listenerCount(), 1)
+  expect(listenerCount()).toBe(1)
   act(() => { renderer.unmount() })
-  t.is(listenerCount(), 0)
+  expect(listenerCount()).toBe(0)
 })
 
-test.serial('useRehydrated returns whether the persistor has bootstrapped', async t => {
+test('useRehydrated returns whether the persistor has bootstrapped', async () => {
   const { persistor, bootstrap } = createPersistor()
   const seen: boolean[] = []
   const Probe = () => { const rehydrated = useRehydrated(persistor); seen.push(rehydrated); return String(rehydrated) }
   const renderer = render(createElement(Probe))
-  t.is(text(renderer), '"false"')
+  expect(text(renderer)).toBe('"false"')
   await act(async () => { bootstrap() })
-  t.is(text(renderer), '"true"')
-  t.deepEqual([seen[0], seen[seen.length - 1]], [false, true])
+  expect(text(renderer)).toBe('"true"')
+  expect([seen[0], seen[seen.length - 1]]).toStrictEqual([false, true])
 })
 
-test.serial('useRehydrated catches a bootstrap that happens before it subscribes', async t => {
+test('useRehydrated catches a bootstrap that happens before it subscribes', async () => {
   const { persistor, bootstrap } = createPersistor()
   const Probe = () => {
     const rehydrated = useRehydrated(persistor)
@@ -135,10 +135,10 @@ test.serial('useRehydrated catches a bootstrap that happens before it subscribes
     return String(rehydrated)
   }
   const renderer = render(createElement(Probe))
-  t.is(text(renderer), '"true"')
+  expect(text(renderer)).toBe('"true"')
 })
 
-test.serial('useRehydrated reports the current persistor when it changes', async t => {
+test('useRehydrated reports the current persistor when it changes', async () => {
   const ready = createPersistor(true)
   const pending = createPersistor(false)
   const committed: Array<{ actual: boolean, reported: boolean }> = []
@@ -151,13 +151,13 @@ test.serial('useRehydrated reports the current persistor when it changes', async
   }
   const renderer = render(createElement(Probe, { persistor: ready.persistor }))
   act(() => { renderer.update(createElement(Probe, { persistor: pending.persistor })) })
-  t.true(committed.every(c => c.actual === c.reported), JSON.stringify(committed))
-  t.is(text(renderer), '"false"')
+  expect(committed.every(c => c.actual === c.reported), JSON.stringify(committed)).toBe(true)
+  expect(text(renderer)).toBe('"false"')
   await act(async () => { pending.bootstrap() })
-  t.is(text(renderer), '"true"')
+  expect(text(renderer)).toBe('"true"')
 })
 
-test.serial('useRehydrated re-renders when a new persistor bootstraps before the hook subscribes', async t => {
+test('useRehydrated re-renders when a new persistor bootstraps before the hook subscribes', async () => {
   const ready = createPersistor(true)
   const pending = createPersistor(false)
   const Probe = ({ persistor }: { persistor: Persistor }) => {
@@ -170,23 +170,23 @@ test.serial('useRehydrated re-renders when a new persistor bootstraps before the
   }
   const renderer = render(createElement(Probe, { persistor: ready.persistor }))
   await act(async () => { renderer.update(createElement(Probe, { persistor: pending.persistor })) })
-  t.true(pending.persistor.getState().bootstrapped)
-  t.is(text(renderer), '"true"')
+  expect(pending.persistor.getState().bootstrapped).toBe(true)
+  expect(text(renderer)).toBe('"true"')
 })
 
-test.serial('stays lifted when the persistor reports loading again', async t => {
+test('stays lifted when the persistor reports loading again', async () => {
   // persistReducers added later register and rehydrate one by one
   const { persistor, bootstrap, setBootstrapped } = createPersistor()
   const renderer = render(gate({ persistor, loading: 'loading' }, 'app'))
   await act(async () => { bootstrap() })
-  t.is(text(renderer), '"app"')
+  expect(text(renderer)).toBe('"app"')
   await act(async () => { setBootstrapped(false) })
-  t.is(text(renderer), '"app"')
+  expect(text(renderer)).toBe('"app"')
   await act(async () => { bootstrap() })
-  t.is(text(renderer), '"app"')
+  expect(text(renderer)).toBe('"app"')
 })
 
-test.serial('works with a persistor whose methods use this', async t => {
+test('works with a persistor whose methods use this', async () => {
   class ClassPersistor {
     state = { registry: [] as string[], bootstrapped: false }
     listeners: Array<() => void> = []
@@ -203,7 +203,7 @@ test.serial('works with a persistor whose methods use this', async t => {
   const persistor = new ClassPersistor()
   const Probe = () => String(useRehydrated(persistor as unknown as Persistor))
   const renderer = render(createElement('div', null, gate({ persistor, loading: 'loading' }, 'app'), createElement(Probe)))
-  t.is(text(renderer), JSON.stringify({ type: 'div', props: {}, children: ['loading', 'false'] }))
+  expect(text(renderer)).toBe(JSON.stringify({ type: 'div', props: {}, children: ['loading', 'false'] }))
   await act(async () => { persistor.bootstrap() })
-  t.is(text(renderer), JSON.stringify({ type: 'div', props: {}, children: ['app', 'true'] }))
+  expect(text(renderer)).toBe(JSON.stringify({ type: 'div', props: {}, children: ['app', 'true'] }))
 })

@@ -2,7 +2,7 @@
 // #1112: replacing persistReducer with one that saves under another key (for
 // example a per-user keyPrefix) keeps the current state and writes it there,
 // over what was stored. That's worth a development warning.
-import test from 'ava'
+import { expect, test } from 'vitest'
 import { legacy_createStore as createStore } from 'redux'
 
 import { persistReducer, persistStore } from '../src'
@@ -24,7 +24,7 @@ const captureErrors = async (run: () => Promise<void>) => {
   return errors.filter(e => e.includes('was replaced by one that saves to'))
 }
 
-test.serial('replacing it with one that saves under another key warns', async t => {
+test('replacing it with one that saves under another key warns', async () => {
   const errors = await captureErrors(async () => {
     const storage = createMemoryStorage()
     const store = createStore(persistReducer({ key: 'root', keyPrefix: 'userA:', storage }, reducer))
@@ -34,11 +34,11 @@ test.serial('replacing it with one that saves under another key warns', async t 
     store.dispatch({ type: 'INC' })
     store.dispatch({ type: 'INC' })
   })
-  t.is(errors.length, 1)
-  t.regex(errors[0], /saves to "userB:root" instead of "userA:root".*create a new store and persistor/)
+  expect(errors).toHaveLength(1)
+  expect(errors[0]).toMatch(/saves to "userB:root" instead of "userA:root".*create a new store and persistor/)
 })
 
-test.serial('replacing it with the same key (hot reloading) does not warn', async t => {
+test('replacing it with the same key (hot reloading) does not warn', async () => {
   const errors = await captureErrors(async () => {
     const storage = createMemoryStorage()
     const store = createStore(persistReducer({ key: 'root', storage }, reducer))
@@ -47,5 +47,5 @@ test.serial('replacing it with the same key (hot reloading) does not warn', asyn
     store.replaceReducer(persistReducer({ key: 'root', storage }, reducer))
     store.dispatch({ type: 'INC' })
   })
-  t.deepEqual(errors, [])
+  expect(errors).toStrictEqual([])
 })

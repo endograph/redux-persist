@@ -2,7 +2,7 @@
 // After persistor.purge(), a persistReducer ignores REHYDRATE for its own key,
 // so purged data doesn't come back. It must still pass REHYDRATE for other
 // keys through to the nested persistReducers that need it.
-import test from 'ava'
+import { expect, test } from 'vitest'
 import { combineReducers, legacy_createStore as createStore } from 'redux'
 
 import { persistReducer, persistStore, REHYDRATE } from '../src'
@@ -28,7 +28,7 @@ const stored = (storage: ReturnType<typeof createStorage>, key: string, field: s
 const items = (state: any = { items: [] }, action: any) =>
   action.type === 'add' ? { ...state, items: [...state.items, action.item] } : state
 
-test('a nested persistReducer keeps saving when a purge lands before its read finishes', async t => {
+test('a nested persistReducer keeps saving when a purge lands before its read finishes', async () => {
   const storage = createStorage({ 'persist:auth': 30 })
   const store = createStore(
     persistReducer(
@@ -42,14 +42,14 @@ test('a nested persistReducer keeps saving when a purge lands before its read fi
   await persistor.purge()
   await sleep(40)
 
-  t.true(store.getState().auth._persist.rehydrated)
-  t.true(persistor.getState().bootstrapped)
+  expect(store.getState().auth._persist.rehydrated).toBe(true)
+  expect(persistor.getState().bootstrapped).toBe(true)
   store.dispatch({ type: 'add', item: 'after purge' })
   await persistor.flush()
-  t.deepEqual(stored(storage, 'persist:auth', 'items'), ['after purge'])
+  expect(stored(storage, 'persist:auth', 'items')).toStrictEqual(['after purge'])
 })
 
-test('a persistReducer added after a purge still loads its stored state', async t => {
+test('a persistReducer added after a purge still loads its stored state', async () => {
   const storage = createStorage()
   storage.data['persist:notifications'] = JSON.stringify({
     items: JSON.stringify(['stored']),
@@ -72,13 +72,13 @@ test('a persistReducer added after a purge still loads its stored state', async 
   persistor.persist()
   await sleep(10)
 
-  t.deepEqual((store.getState() as any).notifications.items, ['stored'])
+  expect((store.getState() as any).notifications.items).toStrictEqual(['stored'])
   store.dispatch({ type: 'add', item: 'new' })
   await persistor.flush()
-  t.deepEqual(stored(storage, 'persist:notifications', 'items'), ['stored', 'new'])
+  expect(stored(storage, 'persist:notifications', 'items')).toStrictEqual(['stored', 'new'])
 })
 
-test('a read that finishes after a purge does not bring the purged data back', async t => {
+test('a read that finishes after a purge does not bring the purged data back', async () => {
   const storage = createStorage({ 'persist:auth': 30 })
   const PERSIST_STATE = JSON.stringify({ version: -1, rehydrated: true })
   // the root also stores auth, as it does without a denylist
@@ -104,7 +104,7 @@ test('a read that finishes after a purge does not bring the purged data back', a
   await persistor.purge()
   await sleep(40)
 
-  t.deepEqual(Object.keys(storage.data), [])
-  t.is((store.getState() as any).lastAuth, null)
-  t.true((store.getState() as any).auth._persist.rehydrated)
+  expect(Object.keys(storage.data)).toStrictEqual([])
+  expect((store.getState() as any).lastAuth).toBe(null)
+  expect((store.getState() as any).auth._persist.rehydrated).toBe(true)
 })

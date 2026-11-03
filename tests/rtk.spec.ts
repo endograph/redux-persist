@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import test from 'ava'
+import { expect, test } from 'vitest'
 import { configureStore, createSlice } from '@reduxjs/toolkit'
 
 import { persistReducer, persistStore } from '../src'
@@ -20,7 +20,7 @@ const captureConsoleErrors = () => {
   return { errors, restore: () => { console.error = original } }
 }
 
-test.serial('works with configureStore defaults without serializable warnings', async t => {
+test('works with configureStore defaults without serializable warnings', async () => {
   const storage = createMemoryStorage()
   const { errors, restore } = captureConsoleErrors()
   try {
@@ -38,14 +38,14 @@ test.serial('works with configureStore defaults without serializable warnings', 
     await persistor.purge()
     persistor.pause()
     persistor.persist()
-    t.is(store.getState().value, 1)
+    expect(store.getState().value).toBe(1)
   } finally {
     restore()
   }
-  t.deepEqual(errors.map(args => String(args[0]).slice(0, 120)), [])
+  expect(errors.map(args => String(args[0]).slice(0, 120))).toStrictEqual([])
 })
 
-test.serial('a failing storage read does not produce serializable warnings', async t => {
+test('a failing storage read does not produce serializable warnings', async () => {
   const storage = {
     ...createMemoryStorage(),
     getItem: () => Promise.reject(new Error('disk unavailable')),
@@ -62,13 +62,12 @@ test.serial('a failing storage read does not produce serializable warnings', asy
     })
     const persistor = persistStore(store)
     await new Promise(resolve => setTimeout(resolve, 50))
-    t.true(persistor.getState().bootstrapped)
+    expect(persistor.getState().bootstrapped).toBe(true)
   } finally {
     restore()
   }
-  t.is(rehydrateErr && rehydrateErr.message, 'disk unavailable')
-  t.deepEqual(
-    errors.map(args => String(args[0])).filter(message => message.includes('non-serializable')),
-    []
-  )
+  expect(rehydrateErr && rehydrateErr.message).toBe('disk unavailable')
+  expect(
+    errors.map(args => String(args[0])).filter(message => message.includes('non-serializable'))
+  ).toStrictEqual([])
 })

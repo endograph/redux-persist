@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import test from 'ava'
+import { expect, test } from 'vitest'
 
 import createPersistoid from '../src/createPersistoid'
 import createMemoryStorage from './utils/createMemoryStorage'
@@ -24,7 +24,7 @@ const createSerialize = () => {
   return { control, serialize }
 }
 
-test('does not throw when serializing the whole state fails', async t => {
+test('does not throw when serializing the whole state fails', async () => {
   const { control, serialize } = createSerialize()
   control.failWholeState = true
   const { update, flush } = createPersistoid({
@@ -34,10 +34,10 @@ test('does not throw when serializing the whole state fails', async t => {
     writeFailHandler: () => {},
   })
   update({ a: 1 })
-  await t.notThrowsAsync(async () => flush())
+  await expect(Promise.resolve().then(flush)).resolves.not.toThrow()
 })
 
-test('passes the serialize error to writeFailHandler and skips the write', async t => {
+test('passes the serialize error to writeFailHandler and skips the write', async () => {
   const { control, serialize } = createSerialize()
   control.failWholeState = true
   const storage = createMemoryStorage()
@@ -50,12 +50,12 @@ test('passes the serialize error to writeFailHandler and skips the write', async
   })
   update({ a: 1 })
   await flush()
-  t.is(errors.length, 1)
-  t.true(errors[0] instanceof RangeError)
-  t.is(await storage.getItem(STORAGE_KEY), undefined)
+  expect(errors).toHaveLength(1)
+  expect(errors[0]).toBeInstanceOf(RangeError)
+  expect(await storage.getItem(STORAGE_KEY)).toBeUndefined()
 })
 
-test('leaves previously stored state intact when serializing fails', async t => {
+test('leaves previously stored state intact when serializing fails', async () => {
   const { control, serialize } = createSerialize()
   const storage = createMemoryStorage()
   const { update, flush } = createPersistoid({
@@ -67,10 +67,10 @@ test('leaves previously stored state intact when serializing fails', async t => 
   update({ a: 1 })
   await flush()
   const stored = await storage.getItem(STORAGE_KEY)
-  t.is(stored, JSON.stringify({ a: '1' }))
+  expect(stored).toBe(JSON.stringify({ a: '1' }))
 
   control.failWholeState = true
   update({ a: 2 })
   await flush()
-  t.is(await storage.getItem(STORAGE_KEY), stored)
+  expect(await storage.getItem(STORAGE_KEY)).toBe(stored)
 })

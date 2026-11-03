@@ -2,7 +2,7 @@
 // #659: resetting state above persistReducer drops _persist, so writes stop
 // and the old state comes back on the next launch. Resetting inside the
 // persisted reducer works; the other way gets a development warning.
-import test from 'ava'
+import { expect, test } from 'vitest'
 import { combineReducers, legacy_createStore as createStore } from 'redux'
 
 import { persistReducer, persistStore } from '../src'
@@ -27,7 +27,7 @@ const capture = async (run: () => Promise<void>) => {
 
 const stored = async (storage: any) => JSON.parse(JSON.parse(await storage.getItem('persist:root')).user)
 
-test.serial('resetting inside the persisted reducer keeps saving, without a warning', async t => {
+test('resetting inside the persisted reducer keeps saving, without a warning', async () => {
   const storage = createMemoryStorage()
   const errors = await capture(async () => {
     const reducer = persistReducer({ key: 'root', storage }, (state: any, action: any) =>
@@ -38,15 +38,15 @@ test.serial('resetting inside the persisted reducer keeps saving, without a warn
     store.dispatch({ type: 'login', name: 'Ada' })
     store.dispatch({ type: 'logout' })
     await persistor.flush()
-    t.deepEqual(await stored(storage), { name: null })
+    expect(await stored(storage)).toStrictEqual({ name: null })
     store.dispatch({ type: 'login', name: 'Grace' })
     await persistor.flush()
-    t.deepEqual(await stored(storage), { name: 'Grace' })
+    expect(await stored(storage)).toStrictEqual({ name: 'Grace' })
   })
-  t.deepEqual(errors, [])
+  expect(errors).toStrictEqual([])
 })
 
-test.serial('resetting above persistReducer warns once', async t => {
+test('resetting above persistReducer warns once', async () => {
   const errors = await capture(async () => {
     const persisted = persistReducer({ key: 'root', storage: createMemoryStorage() }, appReducer)
     const store = createStore((state: any, action: any) =>
@@ -58,11 +58,11 @@ test.serial('resetting above persistReducer warns once', async t => {
     // the warning waits a tick, in case _persist comes back (a devtools recompute)
     await sleep(10)
   })
-  t.is(errors.length, 1)
-  t.regex(errors[0], /"root" lost its _persist key.*#resetting-state-on-logout/)
+  expect(errors).toHaveLength(1)
+  expect(errors[0]).toMatch(/"root" lost its _persist key.*#resetting-state-on-logout/)
 })
 
-test.serial('creating more stores from the same reducer does not warn', async t => {
+test('creating more stores from the same reducer does not warn', async () => {
   const errors = await capture(async () => {
     const persisted = persistReducer({ key: 'root', storage: createMemoryStorage() }, appReducer)
     persistStore(createStore(persisted))
@@ -72,5 +72,5 @@ test.serial('creating more stores from the same reducer does not warn', async t 
     persistStore(createStore(combineReducers({ app: persisted })))
     await sleep(10)
   })
-  t.deepEqual(errors, [])
+  expect(errors).toStrictEqual([])
 })

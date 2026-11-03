@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import test from 'ava'
-import sinon from 'sinon'
+import { expect, test, vi } from 'vitest'
 import { applyMiddleware, createStore } from 'redux'
 
 import persistReducer from '../src/persistReducer'
@@ -22,7 +21,6 @@ const createSlowStorage = (delay: number) => {
   }
 }
 
-// Serial: one test fakes the global setTimeout.
 const setup = (config: Record<string, any>) => {
   const rehydrates: any[] = []
   const recordRehydrates = () => (next: any) => (action: any) => {
@@ -41,52 +39,52 @@ const bootstrap = (store: any) =>
     const persistor = persistStore(store, undefined, () => resolve(persistor))
   })
 
-test.serial('bootstraps without a timeout error when storage is empty', async t => {
+test('bootstraps without a timeout error when storage is empty', async () => {
   const { store, rehydrates } = setup({ storage: createMemoryStorage(), timeout: 1000 })
   const started = Date.now()
   await bootstrap(store)
-  t.true(Date.now() - started < 500)
-  t.is(rehydrates.length, 1)
-  t.is(rehydrates[0].err, undefined)
+  expect(Date.now() - started).toBeLessThan(500)
+  expect(rehydrates).toHaveLength(1)
+  expect(rehydrates[0].err).toBeUndefined()
 })
 
-test.serial('clears the timeout once rehydrated', async t => {
-  const clock = sinon.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+test('clears the timeout once rehydrated', async () => {
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
   try {
     const persistedReducer = persistReducer(
       { key: 'timeout-test', storage: createMemoryStorage() },
       reducer
     )
-    const rehydrate = sinon.spy()
+    const rehydrate = vi.fn()
     persistedReducer(undefined, attachHandle({ type: PERSIST }, { register: () => {}, rehydrate }))
-    t.is(clock.countTimers(), 1)
+    expect(vi.getTimerCount()).toBe(1)
     await new Promise(resolve => setImmediate(resolve))
-    t.is(rehydrate.callCount, 1)
-    t.is(clock.countTimers(), 0)
+    expect(rehydrate).toHaveBeenCalledTimes(1)
+    expect(vi.getTimerCount()).toBe(0)
   } finally {
-    clock.restore()
+    vi.useRealTimers()
   }
 })
 
-test.serial('persist() after rehydration does not dispatch a timeout error', async t => {
+test('persist() after rehydration does not dispatch a timeout error', async () => {
   const { store, rehydrates } = setup({ storage: createMemoryStorage(), timeout: 100 })
   const persistor = await bootstrap(store)
   persistor.persist()
   await sleep(200)
-  t.is(rehydrates.length, 1)
-  t.is(rehydrates[0].err, undefined)
+  expect(rehydrates).toHaveLength(1)
+  expect(rehydrates[0].err).toBeUndefined()
 })
 
-test.serial('persist() before rehydration finishes does not dispatch a timeout error', async t => {
+test('persist() before rehydration finishes does not dispatch a timeout error', async () => {
   const { store, rehydrates } = setup({ storage: createSlowStorage(50), timeout: 100 })
   const persistor = persistStore(store)
   persistor.persist()
   await sleep(200)
-  t.is(rehydrates.length, 1)
-  t.is(rehydrates[0].err, undefined)
+  expect(rehydrates).toHaveLength(1)
+  expect(rehydrates[0].err).toBeUndefined()
 })
 
-test.serial('persist() after pause() keeps and saves changes made while paused', async t => {
+test('persist() after pause() keeps and saves changes made while paused', async () => {
   const storage = createMemoryStorage()
   const { store } = setup({ storage, timeout: 100 })
   const persistor = await bootstrap(store)
@@ -98,7 +96,7 @@ test.serial('persist() after pause() keeps and saves changes made while paused',
   persistor.persist()
   await persistor.flush()
 
-  t.is(store.getState().x, 2)
+  expect(store.getState().x).toBe(2)
   const stored = JSON.parse(await storage.getItem('persist:timeout-test'))
-  t.is(JSON.parse(stored.x), 2)
+  expect(JSON.parse(stored.x)).toBe(2)
 })

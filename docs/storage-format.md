@@ -35,7 +35,7 @@ To add a scenario or a version, add it to the generator and run:
 
 ```sh
 cd scripts/storage-fixtures
-npm install --ignore-scripts
+bun install --ignore-scripts
 node generate.js
 ```
 
