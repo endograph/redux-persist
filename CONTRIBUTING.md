@@ -12,6 +12,10 @@ bun run lint
 bun run test
 ```
 
+Bun only installs package versions that have been public for 7 days
+(`bunfig.toml`), the window in which most malicious releases are caught and
+pulled. New dependencies and updates wait that long.
+
 ## Never break stored data
 
 API changes are fine in a major version. Changes to what's stored are not:

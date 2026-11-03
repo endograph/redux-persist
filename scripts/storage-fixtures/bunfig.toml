@@ -1,0 +1,6 @@
+# Don't install a package version until it has been public for 7 days, the
+# window in which most malicious releases are caught and pulled. For one
+# install that needs a newer version (an urgent security fix):
+#   bun add --minimum-release-age=0 <pkg>
+[install]
+minimumReleaseAge = 604800 # 7 days, in seconds
