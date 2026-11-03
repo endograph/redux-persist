@@ -3,7 +3,7 @@
 // published v5 and v6 must be read correctly by the current code, and the
 // current code must write the same bytes. Fixtures are recorded from the
 // published packages by scripts/storage-fixtures/generate.js.
-import test from 'ava'
+import { expect, test } from 'vitest'
 import { combineReducers, legacy_createStore as createStore } from 'redux'
 
 import { createMigrate, persistReducer, persistStore } from '../src'
@@ -52,21 +52,21 @@ const persistedKeys = (fixture: Fixture) =>
 const flat = fixtures.filter(f => f.name !== 'nested' && f.name !== 'versioned')
 
 for (const fixture of flat) {
-  test(`reads ${fixture.name} written by v${fixture.version}`, async t => {
+  test(`reads ${fixture.name} written by v${fixture.version}`, async () => {
     const storage = memoryStorage(fixture.storage)
     const store = createStore(persistReducer({ ...fixture.config, storage }, settable('SET')))
     await bootstrap(store)
     const expected = Object.fromEntries(persistedKeys(fixture).map(key => [key, fixture.state[key]]))
-    t.deepEqual(withoutPersist(store.getState()), expected)
+    expect(withoutPersist(store.getState())).toStrictEqual(expected)
   })
 
-  test(`writes ${fixture.name} exactly like v${fixture.version}`, async t => {
+  test(`writes ${fixture.name} exactly like v${fixture.version}`, async () => {
     const storage = memoryStorage()
     const store = createStore(persistReducer({ ...fixture.config, storage }, settable('SET')))
     const persistor = await bootstrap(store)
     store.dispatch({ type: 'SET', state: fixture.state })
     await persistor.flush()
-    t.deepEqual(storage.data, fixture.storage)
+    expect(storage.data).toStrictEqual(fixture.storage)
   })
 }
 
@@ -76,18 +76,18 @@ const renamed = (config: any) => {
   return { ...rest, ...(whitelist && { allowlist: whitelist }), ...(blacklist && { denylist: blacklist }) }
 }
 for (const fixture of fixtures.filter(f => f.name === 'whitelist' || f.name === 'blacklist')) {
-  test(`writes ${fixture.name} exactly like v${fixture.version} using the v7 option name`, async t => {
+  test(`writes ${fixture.name} exactly like v${fixture.version} using the v7 option name`, async () => {
     const storage = memoryStorage()
     const store = createStore(persistReducer({ ...renamed(fixture.config), storage }, settable('SET')))
     const persistor = await bootstrap(store)
     store.dispatch({ type: 'SET', state: fixture.state })
     await persistor.flush()
-    t.deepEqual(storage.data, fixture.storage)
+    expect(storage.data).toStrictEqual(fixture.storage)
   })
 }
 
 for (const fixture of fixtures.filter(f => f.name === 'versioned')) {
-  test(`migrates versioned state written by v${fixture.version}`, async t => {
+  test(`migrates versioned state written by v${fixture.version}`, async () => {
     const storage = memoryStorage(fixture.storage)
     const migrations = {
       2: (state: any) => ({
@@ -99,17 +99,17 @@ for (const fixture of fixtures.filter(f => f.name === 'versioned')) {
       persistReducer({ key: 'root', storage, version: 2, migrate: createMigrate(migrations) }, settable('SET'))
     )
     await bootstrap(store)
-    t.deepEqual(withoutPersist(store.getState()), { profile: { fullName: 'Ada Lovelace' } })
-    t.is(store.getState()._persist.version, 2)
+    expect(withoutPersist(store.getState())).toStrictEqual({ profile: { fullName: 'Ada Lovelace' } })
+    expect(store.getState()._persist.version).toBe(2)
   })
 
-  test(`writes versioned ${fixture.name} exactly like v${fixture.version}`, async t => {
+  test(`writes versioned ${fixture.name} exactly like v${fixture.version}`, async () => {
     const storage = memoryStorage()
     const store = createStore(persistReducer({ ...fixture.config, storage }, settable('SET')))
     const persistor = await bootstrap(store)
     store.dispatch({ type: 'SET', state: fixture.state })
     await persistor.flush()
-    t.deepEqual(storage.data, fixture.storage)
+    expect(storage.data).toStrictEqual(fixture.storage)
   })
 }
 
@@ -125,21 +125,21 @@ const nestedStore = (storage: ReturnType<typeof memoryStorage>, config: any) =>
   )
 
 for (const fixture of fixtures.filter(f => f.name === 'nested')) {
-  test(`reads nested persists written by v${fixture.version}`, async t => {
+  test(`reads nested persists written by v${fixture.version}`, async () => {
     const store = nestedStore(memoryStorage(fixture.storage), fixture.config)
     await bootstrap(store)
     const state = store.getState()
-    t.deepEqual(withoutPersist(state.user), { name: 'Ada' })
-    t.deepEqual(state.settings, { theme: 'dark' })
+    expect(withoutPersist(state.user)).toStrictEqual({ name: 'Ada' })
+    expect(state.settings).toStrictEqual({ theme: 'dark' })
   })
 
-  test(`writes nested persists exactly like v${fixture.version}`, async t => {
+  test(`writes nested persists exactly like v${fixture.version}`, async () => {
     const storage = memoryStorage()
     const store = nestedStore(storage, fixture.config)
     const persistor = await bootstrap(store)
     store.dispatch({ type: 'SET_USER', state: fixture.state.user })
     store.dispatch({ type: 'SET_SETTINGS', state: fixture.state.settings })
     await persistor.flush()
-    t.deepEqual(storage.data, fixture.storage)
+    expect(storage.data).toStrictEqual(fixture.storage)
   })
 }

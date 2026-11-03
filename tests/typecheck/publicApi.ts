@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// Compile-time checks for the public types. `npm test` type-checks this file
+// Compile-time checks for the public types. `bun run test` type-checks this file
 // (it is not run by ava); a regression shows up as a compile error.
 import { configureStore } from '@reduxjs/toolkit'
 import { combineReducers, legacy_createStore as createStore } from 'redux'

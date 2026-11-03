@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // #1397, #1281: a storage engine may return plain values instead of promises
 // (a synchronous engine, or a test mock like jest.fn()), or throw.
-import test from 'ava'
+import { expect, test } from 'vitest'
 import { legacy_createStore as createStore } from 'redux'
 
 import { persistReducer, persistStore, REHYDRATE } from '../src'
@@ -16,7 +16,7 @@ const quietly = async (fn: () => Promise<void>) => {
   try { await fn() } finally { console.error = error }
 }
 
-test('a storage engine that returns values instead of promises', async t => {
+test('a storage engine that returns values instead of promises', async () => {
   const data: Record<string, string> = {}
   const storage = {
     getItem: (key: string) => data[key],
@@ -26,35 +26,35 @@ test('a storage engine that returns values instead of promises', async t => {
   const store = createStore(persistReducer({ key: 'root', storage }, reducer))
   const persistor = persistStore(store)
   await sleep(10)
-  t.true(persistor.getState().bootstrapped)
+  expect(persistor.getState().bootstrapped).toBe(true)
 
   store.dispatch({ type: 'INC' })
   await persistor.flush()
-  t.is(JSON.parse(JSON.parse(data['persist:root']).count), 1)
+  expect(JSON.parse(JSON.parse(data['persist:root']).count)).toBe(1)
 
   // a new store reads it back
   const next = createStore(persistReducer({ key: 'root', storage }, reducer))
   persistStore(next)
   await sleep(10)
-  t.is(next.getState().count, 1)
+  expect(next.getState().count).toBe(1)
 
   await persistor.purge()
-  t.false('persist:root' in data)
+  expect('persist:root' in data).toBe(false)
 })
 
-test('a mock storage whose methods return undefined', async t => {
+test('a mock storage whose methods return undefined', async () => {
   const storage = { getItem: () => undefined, setItem: () => undefined, removeItem: () => undefined }
   const store = createStore(persistReducer({ key: 'root', storage }, reducer))
   const persistor = persistStore(store)
   await sleep(10)
-  t.true(persistor.getState().bootstrapped)
+  expect(persistor.getState().bootstrapped).toBe(true)
   store.dispatch({ type: 'INC' })
-  await t.notThrowsAsync(persistor.flush())
-  await t.notThrowsAsync(persistor.purge())
-  t.is(store.getState().count, 1)
+  await expect(persistor.flush()).resolves.not.toThrow()
+  await expect(persistor.purge()).resolves.not.toThrow()
+  expect(store.getState().count).toBe(1)
 })
 
-test.serial('a storage engine that throws is handled like a failed read or write', async t => {
+test('a storage engine that throws is handled like a failed read or write', async () => {
   const rehydrates: any[] = []
   const writeErrors: any[] = []
   const storage = {
@@ -70,23 +70,23 @@ test.serial('a storage engine that throws is handled like a failed read or write
       })
     )
     let persistor: any
-    t.notThrows(() => { persistor = persistStore(store) })
+    expect(() => { persistor = persistStore(store) }).not.toThrow()
     await sleep(10)
-    t.true(persistor.getState().bootstrapped)
-    t.is(rehydrates.length, 1)
-    t.is(rehydrates[0].err.message, 'read failed')
+    expect(persistor.getState().bootstrapped).toBe(true)
+    expect(rehydrates).toHaveLength(1)
+    expect(rehydrates[0].err.message).toBe('read failed')
 
     // writes stay off after a failed read; purging discards the unreadable
     // data and resumes them
-    await t.throwsAsync(persistor.purge(), { message: 'remove failed' })
+    await expect(persistor.purge()).rejects.toThrow('remove failed')
     store.dispatch({ type: 'INC' })
     await persistor.flush()
   })
-  t.is(writeErrors.length, 1)
-  t.is(writeErrors[0].message, 'write failed')
+  expect(writeErrors).toHaveLength(1)
+  expect(writeErrors[0].message).toBe('write failed')
 })
 
-test.serial('a callback-style getItem is a failed read, not empty storage', async t => {
+test('a callback-style getItem is a failed read, not empty storage', async () => {
   const STORED = JSON.stringify({ count: JSON.stringify(5), _persist: JSON.stringify({ version: -1, rehydrated: true }) })
   const data: Record<string, string> = { 'persist:root': STORED }
   const storage = {
@@ -101,10 +101,10 @@ test.serial('a callback-style getItem is a failed read, not empty storage', asyn
     store.dispatch({ type: 'INC' })
     await persistor.flush()
   })
-  t.is(data['persist:root'], STORED)
+  expect(data['persist:root']).toBe(STORED)
 })
 
-test.serial('a read that rejects without a reason is a failed read, not empty storage', async t => {
+test('a read that rejects without a reason is a failed read, not empty storage', async () => {
   const STORED = JSON.stringify({ count: JSON.stringify(5), _persist: JSON.stringify({ version: -1, rehydrated: true }) })
   const data: Record<string, string> = { 'persist:root': STORED }
   const rehydrates: any[] = []
@@ -123,6 +123,6 @@ test.serial('a read that rejects without a reason is a failed read, not empty st
     store.dispatch({ type: 'INC' })
     await persistor.flush()
   })
-  t.is(data['persist:root'], STORED)
-  t.truthy(rehydrates[0].err)
+  expect(data['persist:root']).toBe(STORED)
+  expect(rehydrates[0].err).toBeTruthy()
 })

@@ -1,53 +1,53 @@
-import test from 'ava'
-import sinon from 'sinon'
+import { afterEach, beforeEach, expect, test, vi } from 'vitest'
+import type { MockInstance } from 'vitest'
 import createMemoryStorage from './utils/createMemoryStorage'
 import createPersistoid from '../src/createPersistoid'
 let config: { key: string, version: number, storage: ReturnType<typeof createMemoryStorage>, debug: boolean }
-let spy: sinon.SinonSpy;
-let clock: sinon.SinonFakeTimers;
+let spy: MockInstance;
 
-// Serial with a fresh storage per test: these spy on setItem and fake timers.
-test.beforeEach(() => {
+// A fresh storage per test: these spy on setItem and fake timers.
+beforeEach(() => {
     const memoryStorage = createMemoryStorage()
     config = { key: 'persist-reducer-test', version: 1, storage: memoryStorage, debug: true }
-    spy = sinon.spy(memoryStorage, 'setItem')
-    clock = sinon.useFakeTimers()
+    spy = vi.spyOn(memoryStorage, 'setItem')
+    vi.useFakeTimers()
 });
 
-test.afterEach.always(() => {
-    spy.restore()
-    clock.restore()
+afterEach(() => {
+    spy.mockRestore()
+    vi.useRealTimers()
 });
 
-test.serial('it updates changed state', t => {
+test('it updates changed state', () => {
     const { update } = createPersistoid(config)
     update({ a: 1 })
-    clock.tick(1);
+    vi.advanceTimersByTime(1);
     update({ a: 2 })
-    clock.tick(1);
-    t.true(spy.calledTwice);
-    t.true(spy.withArgs('persist:persist-reducer-test', '{"a":"1"}').calledOnce);
-    t.true(spy.withArgs('persist:persist-reducer-test', '{"a":"2"}').calledOnce);
+    vi.advanceTimersByTime(1);
+    expect(spy.mock.calls).toStrictEqual([
+        ['persist:persist-reducer-test', '{"a":"1"}'],
+        ['persist:persist-reducer-test', '{"a":"2"}'],
+    ]);
 })
 
-test.serial('it does not update unchanged state', t => {
+test('it does not update unchanged state', () => {
     const { update } = createPersistoid(config)
     update({ a: undefined, b: 1 })
-    clock.tick(1);
+    vi.advanceTimersByTime(1);
     // This update should not cause a write.
     update({ a: undefined, b: 1 })
-    clock.tick(1);
-    t.true(spy.calledOnce);
-    t.true(spy.withArgs('persist:persist-reducer-test', '{"b":"1"}').calledOnce);
+    vi.advanceTimersByTime(1);
+    expect(spy.mock.calls).toStrictEqual([['persist:persist-reducer-test', '{"b":"1"}']]);
 })
 
-test.serial('it updates removed keys', t => {
+test('it updates removed keys', () => {
     const { update } = createPersistoid(config)
     update({ a: undefined, b: 1 })
-    clock.tick(1);
+    vi.advanceTimersByTime(1);
     update({ a: undefined, b: undefined })
-    clock.tick(1);
-    t.true(spy.calledTwice);
-    t.true(spy.withArgs('persist:persist-reducer-test', '{"b":"1"}').calledOnce);
-    t.true(spy.withArgs('persist:persist-reducer-test', '{}').calledOnce);
+    vi.advanceTimersByTime(1);
+    expect(spy.mock.calls).toStrictEqual([
+        ['persist:persist-reducer-test', '{"b":"1"}'],
+        ['persist:persist-reducer-test', '{}'],
+    ]);
 })

@@ -3,7 +3,7 @@
 // writes the same bytes. See docs/storage-format.md.
 //
 // Regenerate (only needed to add scenarios or versions):
-//   cd scripts/storage-fixtures && npm install --ignore-scripts && node generate.js
+//   cd scripts/storage-fixtures && bun install --ignore-scripts && node generate.js
 const fs = require('fs')
 const path = require('path')
 const { createStore, combineReducers } = require('redux')

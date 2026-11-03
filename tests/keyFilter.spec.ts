@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import test from 'ava'
+import { expect, test } from 'vitest'
 
 import createPersistoid from '../src/createPersistoid'
 import createTransform from '../src/createTransform'
@@ -22,28 +22,28 @@ const quietWarnings = () => {
   return { warnings, restore: () => { console.warn = warn } }
 }
 
-test('allowlist writes the same data as whitelist', async t => {
-  t.is(await written({ allowlist: ['user', 'count'] }), await written({ whitelist: ['user', 'count'] }))
-  t.deepEqual(Object.keys(JSON.parse(await written({ allowlist: ['user', 'count'] }))), ['user', 'count', '_persist'])
+test('allowlist writes the same data as whitelist', async () => {
+  expect(await written({ allowlist: ['user', 'count'] })).toBe(await written({ whitelist: ['user', 'count'] }))
+  expect(Object.keys(JSON.parse(await written({ allowlist: ['user', 'count'] })))).toStrictEqual(['user', 'count', '_persist'])
 })
 
-test('denylist writes the same data as blacklist', async t => {
-  t.is(await written({ denylist: ['user'] }), await written({ blacklist: ['user'] }))
-  t.deepEqual(Object.keys(JSON.parse(await written({ denylist: ['user'] }))), ['settings', 'count', '_persist'])
+test('denylist writes the same data as blacklist', async () => {
+  expect(await written({ denylist: ['user'] })).toBe(await written({ blacklist: ['user'] }))
+  expect(Object.keys(JSON.parse(await written({ denylist: ['user'] })))).toStrictEqual(['settings', 'count', '_persist'])
 })
 
-test.serial('when both names are given, the new one wins with a warning', async t => {
+test('when both names are given, the new one wins with a warning', async () => {
   const { warnings, restore } = quietWarnings()
   try {
-    t.is(await written({ allowlist: ['user'], whitelist: ['count'] }), await written({ allowlist: ['user'] }))
-    t.is(await written({ denylist: ['user'], blacklist: ['count'] }), await written({ denylist: ['user'] }))
+    expect(await written({ allowlist: ['user'], whitelist: ['count'] })).toBe(await written({ allowlist: ['user'] }))
+    expect(await written({ denylist: ['user'], blacklist: ['count'] })).toBe(await written({ denylist: ['user'] }))
   } finally {
     restore()
   }
-  t.is(warnings.length, 2)
+  expect(warnings).toHaveLength(2)
 })
 
-test.serial('old names alone do not warn', async t => {
+test('old names alone do not warn', async () => {
   const { warnings, restore } = quietWarnings()
   try {
     await written({ whitelist: ['user'] })
@@ -51,40 +51,40 @@ test.serial('old names alone do not warn', async t => {
   } finally {
     restore()
   }
-  t.is(warnings.length, 0)
+  expect(warnings).toHaveLength(0)
 })
 
-test('createTransform applies to allowlisted keys and skips denylisted ones', t => {
+test('createTransform applies to allowlisted keys and skips denylisted ones', () => {
   const upper = (s: any) => ({ ...s, name: String(s.name).toUpperCase() })
   const allow = createTransform(upper, upper, { allowlist: ['user'] })
   const deny = createTransform(upper, upper, { denylist: ['user'] })
   const legacy = createTransform(upper, upper, { whitelist: ['user'] })
-  t.deepEqual(allow.in({ name: 'ada' } as any, 'user', {}), { name: 'ADA' })
-  t.deepEqual(allow.in({ name: 'ada' } as any, 'other', {}), { name: 'ada' })
-  t.deepEqual(deny.out({ name: 'ada' } as any, 'user', {}), { name: 'ada' })
-  t.deepEqual(deny.out({ name: 'ada' } as any, 'other', {}), { name: 'ADA' })
-  t.deepEqual(legacy.in({ name: 'ada' } as any, 'user', {}), { name: 'ADA' })
+  expect(allow.in({ name: 'ada' } as any, 'user', {})).toStrictEqual({ name: 'ADA' })
+  expect(allow.in({ name: 'ada' } as any, 'other', {})).toStrictEqual({ name: 'ada' })
+  expect(deny.out({ name: 'ada' } as any, 'user', {})).toStrictEqual({ name: 'ada' })
+  expect(deny.out({ name: 'ada' } as any, 'other', {})).toStrictEqual({ name: 'ADA' })
+  expect(legacy.in({ name: 'ada' } as any, 'user', {})).toStrictEqual({ name: 'ADA' })
 })
 
-test('allowlist and denylist take a function of the key (#1283)', async t => {
-  t.is(await written({ allowlist: (key: string) => key !== 'settings' }), await written({ allowlist: ['user', 'count'] }))
-  t.is(await written({ denylist: (key: string) => key.startsWith('s') }), await written({ denylist: ['settings'] }))
+test('allowlist and denylist take a function of the key (#1283)', async () => {
+  expect(await written({ allowlist: (key: string) => key !== 'settings' })).toBe(await written({ allowlist: ['user', 'count'] }))
+  expect(await written({ denylist: (key: string) => key.startsWith('s') })).toBe(await written({ denylist: ['settings'] }))
 })
 
-test('_persist is always written, and a function filter is never called with it', async t => {
+test('_persist is always written, and a function filter is never called with it', async () => {
   const seen: string[] = []
   const stored = JSON.parse(await written({ denylist: (key: string) => { seen.push(key); return key.startsWith('_') } }))
-  t.deepEqual(Object.keys(stored), ['user', 'settings', 'count', '_persist'])
-  t.false(seen.includes('_persist'))
-  t.deepEqual(Object.keys(JSON.parse(await written({ allowlist: () => false }))), ['_persist'])
+  expect(Object.keys(stored)).toStrictEqual(['user', 'settings', 'count', '_persist'])
+  expect(seen.includes('_persist')).toBe(false)
+  expect(Object.keys(JSON.parse(await written({ allowlist: () => false })))).toStrictEqual(['_persist'])
 })
 
-test('createTransform takes a function allowlist or denylist', t => {
+test('createTransform takes a function allowlist or denylist', () => {
   const upper = (s: any) => ({ ...s, name: String(s.name).toUpperCase() })
   const allow = createTransform(upper, upper, { allowlist: key => key.startsWith('user') })
   const deny = createTransform(upper, upper, { denylist: key => key === 'user' })
-  t.deepEqual(allow.in({ name: 'ada' } as any, 'userProfile', {}), { name: 'ADA' })
-  t.deepEqual(allow.in({ name: 'ada' } as any, 'other', {}), { name: 'ada' })
-  t.deepEqual(deny.out({ name: 'ada' } as any, 'user', {}), { name: 'ada' })
-  t.deepEqual(deny.out({ name: 'ada' } as any, 'other', {}), { name: 'ADA' })
+  expect(allow.in({ name: 'ada' } as any, 'userProfile', {})).toStrictEqual({ name: 'ADA' })
+  expect(allow.in({ name: 'ada' } as any, 'other', {})).toStrictEqual({ name: 'ada' })
+  expect(deny.out({ name: 'ada' } as any, 'user', {})).toStrictEqual({ name: 'ada' })
+  expect(deny.out({ name: 'ada' } as any, 'other', {})).toStrictEqual({ name: 'ADA' })
 })

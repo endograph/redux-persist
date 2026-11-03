@@ -1,5 +1,4 @@
-import test from 'ava'
-import sinon from 'sinon'
+import { expect, test, vi } from 'vitest'
 
 import persistReducer from '../src/persistReducer'
 import { attachHandle } from '../src/persistorHandle'
@@ -15,53 +14,53 @@ const config = {
   storage: createMemoryStorage()
 }
 
-test('persistedReducer does not automatically set _persist state', t => {
+test('persistedReducer does not automatically set _persist state', () => {
   const persistedReducer = persistReducer(config, reducer)
   const state = persistedReducer({}, {type: "UNDEFINED"})
   console.log('state', state)
   // the type includes _persist, but it is only set once PERSIST is handled
-  t.is(state._persist as unknown, undefined)
+  expect(state._persist as unknown).toBeUndefined()
 })
 
-test('persistedReducer does returns versioned, rehydrate tracked _persist state upon PERSIST', t => {
+test('persistedReducer does returns versioned, rehydrate tracked _persist state upon PERSIST', () => {
   const persistedReducer = persistReducer(config, reducer)
-  const register = sinon.spy()
-  const rehydrate = sinon.spy()
+  const register = vi.fn()
+  const rehydrate = vi.fn()
   const state = persistedReducer({}, attachHandle({ type: PERSIST }, { register, rehydrate }))
-  t.deepEqual({ version: 1, rehydrated: false}, state._persist)
+  expect(state._persist).toStrictEqual({ version: 1, rehydrated: false })
 })
 
-test('persistedReducer calls register and rehydrate after PERSIST', async (t) => {
+test('persistedReducer calls register and rehydrate after PERSIST', async () => {
   const persistedReducer = persistReducer(config, reducer)
-  const register = sinon.spy()
-  const rehydrate = sinon.spy()
+  const register = vi.fn()
+  const rehydrate = vi.fn()
   persistedReducer({}, attachHandle({ type: PERSIST }, { register, rehydrate }))
   await sleep(50)
-  t.is(register.callCount, 1)
-  t.is(rehydrate.callCount, 1)
+  expect(register).toHaveBeenCalledTimes(1)
+  expect(rehydrate).toHaveBeenCalledTimes(1)
 })
 
-test('persistedReducer rehydrates immediately when storage is empty', async (t) => {
+test('persistedReducer rehydrates immediately when storage is empty', async () => {
   const persistedReducer = persistReducer(config, reducer)
-  const register = sinon.spy()
-  const rehydrate = sinon.spy()
+  const register = vi.fn()
+  const rehydrate = vi.fn()
   persistedReducer({}, attachHandle({ type: PERSIST }, { register, rehydrate }))
   await sleep(50)
-  t.is(rehydrate.callCount, 1)
+  expect(rehydrate).toHaveBeenCalledTimes(1)
 })
 
-test('persistedReducer ignores PERSIST and PURGE actions without a persistor handle (devtools replay)', async (t) => {
+test('persistedReducer ignores PERSIST and PURGE actions without a persistor handle (devtools replay)', async () => {
   const storage = createMemoryStorage()
   await storage.setItem('persist:replay', JSON.stringify({ a: '1' }))
   const persistedReducer = persistReducer({ key: 'replay', storage }, reducer)
   const warn = console.warn
   console.warn = () => {}
   try {
-    t.notThrows(() => persistedReducer({}, { type: PERSIST }))
+    expect(() => persistedReducer({}, { type: PERSIST })).not.toThrow()
     persistedReducer({}, { type: PURGE })
   } finally {
     console.warn = warn
   }
   await sleep(10)
-  t.is(await storage.getItem('persist:replay'), JSON.stringify({ a: '1' }))
+  expect(await storage.getItem('persist:replay')).toBe(JSON.stringify({ a: '1' }))
 })

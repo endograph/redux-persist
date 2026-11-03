@@ -5,7 +5,7 @@
 // updates; a client that loaded stored state before React hydrated used to
 // render different HTML than the server. (Client-only renders still skip
 // `loading` when already loaded, #1070: see persistGate.spec.ts.)
-import test from 'ava'
+import { expect, test } from 'vitest'
 import { createElement } from 'react'
 import { renderToString } from 'react-dom/server'
 import { legacy_createStore as createStore } from 'redux'
@@ -22,16 +22,16 @@ const loaded = async () => {
   return persistor
 }
 
-test('PersistGate renders loading on the server, even once the persistor has loaded', async t => {
+test('PersistGate renders loading on the server, even once the persistor has loaded', async () => {
   const persistor = await loaded()
-  t.true(persistor.getState().bootstrapped)
+  expect(persistor.getState().bootstrapped).toBe(true)
   const html = renderToString(
     createElement(PersistGate as any, { persistor, loading: createElement('p', null, 'loading') }, createElement('p', null, 'app'))
   )
-  t.is(html, '<p>loading</p>')
+  expect(html).toBe('<p>loading</p>')
 })
 
-test('a function child and useRehydrated get false on the server', async t => {
+test('a function child and useRehydrated get false on the server', async () => {
   const persistor = await loaded()
   const Probe = () => createElement('span', null, String(useRehydrated(persistor)))
   const html = renderToString(
@@ -39,5 +39,5 @@ test('a function child and useRehydrated get false on the server', async t => {
       createElement(PersistGate as any, { persistor, children: (bootstrapped: boolean) => String(bootstrapped) }),
       createElement(Probe))
   )
-  t.is(html, '<div>false<span>false</span></div>')
+  expect(html).toBe('<div>false<span>false</span></div>')
 })

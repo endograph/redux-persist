@@ -2,7 +2,7 @@
 // (require and import), a bundler (esbuild) and TypeScript (node10, node16
 // from CJS and ESM, bundler). The paths are every importable file published
 // 6.0.0 had (v6-paths.txt), with and without .js and as directory imports,
-// plus the v7 short paths. Run after `npm run build`: npm run check:package
+// plus the v7 short paths. Run after `bun run build`: bun run check:package
 import { execFileSync } from 'child_process'
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'fs'
 import { createRequire } from 'module'

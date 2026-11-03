@@ -187,13 +187,12 @@
     "README.md"
   ],
   "scripts": {
-    "ava": "ava",
-    "build": "npm run build:commonjs && npm run build:es",
+    "build": "bun run build:commonjs && bun run build:es",
     "build:commonjs": "tsc --module commonjs --outDir lib",
     "build:es": "tsc --module es2015 --outDir es && node scripts/write-es-package-json.mjs",
     "clean": "rimraf build dist es lib",
-    "prepare": "npm run build",
-    "test": "tsc -p tsconfig.test.json && ava",
+    "prepare": "bun run build",
+    "test": "tsc -p tsconfig.test.json --noEmit && vitest run",
     "lint": "eslint src tests",
     "typecheck": "tsc -p tsconfig.test.json --noEmit",
     "check:package": "node scripts/check-package/check.mjs"
@@ -201,27 +200,14 @@
   "author": "",
   "license": "MIT",
   "homepage": "https://github.com/endograph/redux-persist#readme",
-  "ava": {
-    "files": [
-      "tests/**/*.spec.ts"
-    ],
-    "typescript": {
-      "rewritePaths": {
-        "tests/": "build/tests/"
-      },
-      "compile": false
-    }
-  },
+  "packageManager": "bun@1.4.4",
   "devDependencies": {
-    "@ava/typescript": "^7.0.0",
     "@eslint/js": "^10.0.1",
     "@reduxjs/toolkit": "^2.13.0",
     "@types/node": "^24.19.2",
     "@types/react": "^19.3.0",
     "@types/react-test-renderer": "^19.3.0",
     "@types/redux-mock-store": "^1.5.0",
-    "@types/sinon": "^22.0.2",
-    "ava": "^8.1.2",
     "esbuild": "^0.28.2",
     "eslint": "^10.13.0",
     "prettier": "^3.9.10",
@@ -232,9 +218,9 @@
     "redux": "^5.0.1",
     "redux-mock-store": "^1.5.5",
     "rimraf": "^6.1.3",
-    "sinon": "^22.1.0",
     "typescript": "~6.0.3",
-    "typescript-eslint": "^8.72.1"
+    "typescript-eslint": "^8.72.1",
+    "vitest": "^5.0.5"
   },
   "peerDependencies": {
     "redux": "^5.0.0",

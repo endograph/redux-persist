@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // Lifecycle edge cases from review: nested persists whose parent also stores
 // the child, reducer replacement with pending writes, purge before persist.
-import test from 'ava'
+import { expect, onTestFinished, test } from 'vitest'
 import { combineReducers, legacy_createStore as createStore } from 'redux'
 
 import { persistReducer, persistStore } from '../src'
@@ -48,29 +48,29 @@ const parentData = JSON.stringify({
   _persist: JSON.stringify({ version: -1, rehydrated: true }),
 })
 
-test('nested persist: child loading after the parent keeps its stored value and keeps saving', async t => {
+test('nested persist: child loading after the parent keeps its stored value and keeps saving', async () => {
   const storage = createStorage({ 'persist:parent': parentData, 'persist:child': persisted({ value: 9 }) }, { 'persist:child': 30 })
   const store = nestedStore(storage)
   const persistor = await bootstrap(store)
-  t.is(store.getState().child.value, 9)
+  expect(store.getState().child.value).toBe(9)
 
   store.dispatch({ type: 'SET_CHILD', value: 10 })
   await persistor.flush()
-  t.is(childValue(storage.data['persist:child']), 10)
+  expect(childValue(storage.data['persist:child'])).toBe(10)
 })
 
-test('nested persist: child keeps saving when the parent loads after it', async t => {
+test('nested persist: child keeps saving when the parent loads after it', async () => {
   const storage = createStorage({ 'persist:parent': parentData, 'persist:child': persisted({ value: 9 }) }, { 'persist:parent': 30 })
   const store = nestedStore(storage)
   const persistor = await bootstrap(store)
 
   store.dispatch({ type: 'SET_CHILD', value: 10 })
   await persistor.flush()
-  t.is(store.getState().child.value, 10)
-  t.is(childValue(storage.data['persist:child']), 10)
+  expect(store.getState().child.value).toBe(10)
+  expect(childValue(storage.data['persist:child'])).toBe(10)
 })
 
-test('replacing the reducer does not let an older pending write overwrite newer data', async t => {
+test('replacing the reducer does not let an older pending write overwrite newer data', async () => {
   const storage = createStorage({})
   const config = { key: 'root', storage, throttle: 100 }
   const reducer = (state: any = { value: 0 }, action: any) => (action.type === 'SET' ? { value: action.value } : state)
@@ -81,26 +81,26 @@ test('replacing the reducer does not let an older pending write overwrite newer 
   store.replaceReducer(persistReducer(config, reducer))
   store.dispatch({ type: 'SET', value: 2 })
   await persistor.flush()
-  t.is(JSON.parse(JSON.parse(storage.data['persist:root']).value), 2)
+  expect(JSON.parse(JSON.parse(storage.data['persist:root']).value)).toBe(2)
 
   await sleep(150) // past the original throttle
-  t.is(JSON.parse(JSON.parse(storage.data['persist:root']).value), 2)
+  expect(JSON.parse(JSON.parse(storage.data['persist:root']).value)).toBe(2)
 })
 
-test('purge() before persist() removes stored data (manualPersist)', async t => {
+test('purge() before persist() removes stored data (manualPersist)', async () => {
   const storage = createStorage({ 'persist:root': persisted({ value: 42 }) })
   const reducer = (state: any = { value: 0 }) => state
   const store = createStore(persistReducer({ key: 'root', storage }, reducer))
   const persistor = persistStore(store, { manualPersist: true })
   await persistor.purge()
-  t.is(storage.data['persist:root'], undefined)
+  expect(storage.data['persist:root']).toBeUndefined()
 
   persistor.persist()
   await sleep(20)
-  t.is(store.getState().value, 0)
+  expect(store.getState().value).toBe(0)
 })
 
-test('nested persist two levels deep keeps saving after the parent rehydrates', async t => {
+test('nested persist two levels deep keeps saving after the parent rehydrates', async () => {
   const storage = createStorage({
     'persist:parent': JSON.stringify({
       area: JSON.stringify({ child: { value: 3, _persist: { version: -1, rehydrated: true } } }),
@@ -117,10 +117,10 @@ test('nested persist two levels deep keeps saving after the parent rehydrates', 
   const persistor = await bootstrap(store)
   store.dispatch({ type: 'SET_CHILD', value: 11 })
   await persistor.flush()
-  t.is(childValue(storage.data['persist:child']), 11)
+  expect(childValue(storage.data['persist:child'])).toBe(11)
 })
 
-test('replacing the reducer: a slow write from the previous writer cannot land after a newer one', async t => {
+test('replacing the reducer: a slow write from the previous writer cannot land after a newer one', async () => {
   const data: Record<string, any> = {}
   let slowNext = false
   const storage = {
@@ -143,12 +143,12 @@ test('replacing the reducer: a slow write from the previous writer cannot land a
   store.replaceReducer(persistReducer(config, reducer)) // flushes the pending 1, slowly
   store.dispatch({ type: 'SET', value: 2 })
   await persistor.flush()
-  t.is(JSON.parse(JSON.parse(data['persist:root']).value), 2)
+  expect(JSON.parse(JSON.parse(data['persist:root']).value)).toBe(2)
   await sleep(80) // past the slow write
-  t.is(JSON.parse(JSON.parse(data['persist:root']).value), 2)
+  expect(JSON.parse(JSON.parse(data['persist:root']).value)).toBe(2)
 })
 
-test('after replacing the reducer, writes are synchronous again once the previous write settles', async t => {
+test('after replacing the reducer, writes are synchronous again once the previous write settles', async () => {
   const storage = createStorage({})
   let syncWrites = 0
   const syncStorage = { ...storage, setItem: (key: string, value: any) => { syncWrites++; return storage.setItem(key, value) } }
@@ -162,15 +162,15 @@ test('after replacing the reducer, writes are synchronous again once the previou
   const before = syncWrites
   store.dispatch({ type: 'SET', value: 5 })
   persistor.flush() // e.g. from beforeunload: must reach storage before returning
-  t.is(syncWrites, before + 1)
+  expect(syncWrites).toBe(before + 1)
 })
 
 for (const replacements of [1, 2]) {
-  test(`flush preserves the inherited write across ${replacements} reducer replacement(s)`, async t => {
+  test(`flush preserves the inherited write across ${replacements} reducer replacement(s)`, async () => {
     const storage = createStorage({})
     let finishPreviousWrite!: () => void
     const previousWrite = new Promise<void>(resolve => { finishPreviousWrite = resolve })
-    t.teardown(finishPreviousWrite)
+    onTestFinished(finishPreviousWrite)
     const delayedStorage = {
       ...storage,
       setItem: (key: string, value: string) => {
@@ -193,16 +193,16 @@ for (const replacements of [1, 2]) {
     let flushed = false
     const flushing = persistor.flush().then(() => { flushed = true })
     await new Promise<void>(resolve => setImmediate(resolve))
-    t.false(flushed)
-    t.is(childValue(storage.data['persist:root']), 0)
+    expect(flushed).toBe(false)
+    expect(childValue(storage.data['persist:root'])).toBe(0)
 
     finishPreviousWrite()
     await flushing
-    t.is(childValue(storage.data['persist:root']), replacements)
+    expect(childValue(storage.data['persist:root'])).toBe(replacements)
   })
 }
 
-test('replacing the reducer: an inherited write that never settles only delays writes by `timeout`', async t => {
+test('replacing the reducer: an inherited write that never settles only delays writes by `timeout`', async () => {
   const data: Record<string, any> = {}
   let hang = false
   const storage = {
@@ -225,6 +225,6 @@ test('replacing the reducer: an inherited write that never settles only delays w
   store.dispatch({ type: 'SET_CHILD', value: 2 })
   const started = Date.now()
   await persistor.flush()
-  t.true(Date.now() - started >= 40, 'waited for the timeout')
-  t.is(childValue(data['persist:root']), 2)
+  expect(Date.now() - started, 'waited for the timeout').toBeGreaterThanOrEqual(40)
+  expect(childValue(data['persist:root'])).toBe(2)
 })

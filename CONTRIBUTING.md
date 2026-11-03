@@ -3,10 +3,13 @@
 Bug reports and pull requests are welcome. For questions and feature ideas,
 use [Discussions](https://github.com/endograph/redux-persist/discussions).
 
+Development uses [Bun](https://bun.sh) to install dependencies and run
+scripts; the tools themselves (TypeScript, ESLint, Vitest) run on Node.
+
 ```sh
-npm ci
-npm run lint
-npm test
+bun install
+bun run lint
+bun run test
 ```
 
 ## Never break stored data
@@ -37,7 +40,7 @@ tag is pushed. Merging to master never publishes.
 1. Open a pull request that only sets the version, and merge it. The changelog
    lines come with each change's own pull request.
    ```sh
-   npm version <version> --no-git-tag-version
+   bun pm version <version> --no-git-tag-version
    npm publish --dry-run --tag next  # optional: check the package; drop --tag for a stable version
    ```
 2. Tag the merge commit and push the tag. A ruleset restricts tag creation, so

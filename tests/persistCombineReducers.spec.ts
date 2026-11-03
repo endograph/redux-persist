@@ -4,22 +4,22 @@ import persistCombineReducers from '../src/persistCombineReducers'
 import persistStore from '../src/persistStore'
 import createMemoryStorage from './utils/createMemoryStorage'
 
-import test from 'ava'
+import { expect, test } from 'vitest'
 
 const config = {
   key: 'TestConfig',
   storage: createMemoryStorage()
 }
 
-test('persistCombineReducers returns a function', t => {
+test('persistCombineReducers returns a function', () => {
   const reducer = persistCombineReducers(config, {
     foo: () => ({})
   })
 
-  t.is(typeof reducer, 'function')
+  expect(typeof reducer).toBe('function')
 })
 
-test('persistCombineReducers merges two levels deep of state', async t => {
+test('persistCombineReducers merges two levels deep of state', async () => {
   const storage = createMemoryStorage()
   // stored before `settings.fontSize` existed
   await storage.setItem('persist:TwoLevels', JSON.stringify({
@@ -30,5 +30,5 @@ test('persistCombineReducers merges two levels deep of state', async t => {
   const store = createStore(persistCombineReducers({ key: 'TwoLevels', storage }, { settings }))
   await new Promise(resolve => persistStore(store, null, () => resolve(undefined)))
   // the stored theme is restored, and the new fontSize default is kept
-  t.deepEqual(store.getState().settings, { theme: 'light', fontSize: 14 })
+  expect(store.getState().settings).toStrictEqual({ theme: 'light', fontSize: 14 })
 })
